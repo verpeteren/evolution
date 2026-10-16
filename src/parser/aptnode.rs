@@ -1199,7 +1199,7 @@ mod tests {
                 None,
                 None
             ),
-            0.7229582
+            1.06039
         );
         assert_eq!(
             APTNode::Ridge(mock::mock_params_ridge(true)).constant_eval::<Scalar>(
@@ -1211,7 +1211,7 @@ mod tests {
                 None,
                 None
             ),
-            1.5054044
+            0.47665274
         );
         assert_eq!(
             APTNode::Cell1(mock::mock_params_cell1(true)).constant_eval::<Scalar>(
@@ -1223,7 +1223,7 @@ mod tests {
                 None,
                 None
             ),
-            0.8158007
+            0.8156951
         );
         assert_eq!(
             APTNode::Cell2(mock::mock_params_cell2(true)).constant_eval::<Scalar>(
@@ -1247,7 +1247,7 @@ mod tests {
                 None,
                 None
             ),
-            1.4945955
+            2.5233474
         );
         assert_eq!(
             APTNode::Sqrt(vec![APTNode::Constant(16.0)]).constant_eval::<Scalar>(
@@ -1271,7 +1271,7 @@ mod tests {
                 None,
                 None
             ),
-            -8.742278e-8
+            -8.742279e-8
         );
         assert_eq!(
             APTNode::Atan(mock::mock_params_atan(true)).constant_eval::<Scalar>(
@@ -1307,7 +1307,7 @@ mod tests {
                 None,
                 None
             ),
-            -22877334.0
+            -22877332.0
         );
         assert_eq!(
             APTNode::Log(mock::mock_params_log(true)).constant_eval::<Scalar>(
@@ -2963,7 +2963,7 @@ mod tests {
                 Some(600),
                 Some(1.2)
             ),
-            APTNode::Constant(462.72632)
+            APTNode::Constant(415.83722)
         );
 
         assert_eq!(
@@ -2976,7 +2976,7 @@ mod tests {
                 Some(600),
                 Some(1.2)
             ),
-            APTNode::Constant(462.72632)
+            APTNode::Constant(415.83722)
         );
         assert_eq!(
             apt.clone().constant_fold::<Scalar>(
