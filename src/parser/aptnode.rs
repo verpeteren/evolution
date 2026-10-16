@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use std::sync::Arc;
 
+use crate::constants::MAX_PARSE_DEPTH;
 use crate::parser::token::Token;
 use crate::pic::actual_picture::ActualPicture;
 use crate::pic::coordinatesystem::{cartesian_to_polar, CoordinateSystem};
@@ -690,6 +691,19 @@ impl APTNode {
     }
 
     pub fn parse_apt_node(receiver: &Receiver<Token>) -> Result<APTNode, String> {
+        APTNode::parse_apt_node_at_depth(receiver, 0)
+    }
+
+    fn parse_apt_node_at_depth(
+        receiver: &Receiver<Token>,
+        depth: usize,
+    ) -> Result<APTNode, String> {
+        if depth > MAX_PARSE_DEPTH {
+            return Err(format!(
+                "expression nested too deeply (max depth {})",
+                MAX_PARSE_DEPTH
+            ));
+        }
         loop {
             match receiver.recv() {
                 Ok(token) => {
@@ -700,7 +714,8 @@ impl APTNode {
                             match node.get_children_mut() {
                                 Some(children) => {
                                     for child in children {
-                                        *child = APTNode::parse_apt_node(receiver)?;
+                                        *child =
+                                            APTNode::parse_apt_node_at_depth(receiver, depth + 1)?;
                                     }
                                     return Ok(node);
                                 }

@@ -7,6 +7,11 @@ pub const DEFAULT_COORDINATE_SYSTEM: CoordinateSystem = CoordinateSystem::Polar;
 pub const PIC_RANDOM_TREE_MIN: usize = 1;
 pub const PIC_RANDOM_TREE_MAX: usize = 40;
 
+/// Maximum nesting depth accepted when parsing an expression tree. Guards the
+/// recursive parser against stack overflow on pathologically nested input;
+/// well above any tree the generator produces (bounded by PIC_RANDOM_TREE_MAX).
+pub const MAX_PARSE_DEPTH: usize = 256;
+
 pub const PIC_GRADIENT_STOP_CHANCE: usize = 5; // 1 in 5
 pub const PIC_GRADIENT_COUNT_MAX: usize = 10;
 pub const PIC_GRADIENT_COUNT_MIN: usize = 2;
