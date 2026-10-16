@@ -32,7 +32,7 @@ pub struct State {
 impl State {
     pub fn new(args: &Args) -> Result<State, String> {
         let dimensions = (args.width, args.height);
-        let pic_path = get_picture_path(&args);
+        let pic_path = get_picture_path(args);
         let pictures = Arc::new(
             load_pictures(pic_path.as_path())
                 .map_err(|e| format!("Cannot load picture folder. {:?}", e))?,
@@ -85,8 +85,8 @@ impl State {
     pub fn frame_elapsed(&self) -> f32 {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let diff = now - self.start_time;
-        let offset_from_start = diff.as_millis() as f32 + self.offset;
-        offset_from_start //% VIDEO_DURATION
+        
+        diff.as_millis() as f32 + self.offset //% VIDEO_DURATION
     }
 
     pub fn save_to_files(&self, pic: &Pic, exec_name: &str) {
@@ -102,7 +102,7 @@ impl State {
         let tfn = format!("{}_{}.sexpr", exec_name, ts);
         let sexpr_filename = Path::new(&tfn);
         let dest = filename_to_copy_to(
-            &target_dir,
+            target_dir,
             now,
             &sexpr_filename.file_name().unwrap().to_string_lossy(),
         );
@@ -115,13 +115,13 @@ impl State {
         let tfn = format!("{}_{}.png", exec_name, ts);
         let png_filename = Path::new(&tfn);
         let dest = filename_to_copy_to(
-            &target_dir,
+            target_dir,
             now,
             &png_filename.file_name().unwrap().to_string_lossy(),
         );
         let (width, height) = self.dimensions;
         let rgba8 =
-            pic_get_rgba8(&pic, false, self.pictures.clone(), width, height, ts);
+            pic_get_rgba8(pic, false, self.pictures.clone(), width, height, ts);
         save_buffer_with_format(
             dest,
             &rgba8[..],

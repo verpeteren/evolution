@@ -19,6 +19,9 @@ pub use rgb::RGBData;
 use simdeez::prelude::*;
 
 pub trait PicData {
+    // `new` returns the `Pic` enum rather than `Self`, and `&Vec` keeps the
+    // signature identical across all implementors and their caller (Pic::new).
+    #[allow(clippy::new_ret_no_self, clippy::ptr_arg)]
     fn new(min: usize, max: usize, video: bool, rng: &mut StdRng, pic_names: &Vec<&String>) -> Pic;
     fn get_rgba8<S: Simd>(
         &self,

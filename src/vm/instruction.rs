@@ -3,6 +3,7 @@ use simdeez::prelude::*;
 use std::fmt;
 
 #[derive(PartialEq)]
+#[allow(clippy::upper_case_acronyms)] // FBM is the DSL keyword, kept verbatim
 pub enum Instruction<S: Simd> {
     Add,
     Sub,

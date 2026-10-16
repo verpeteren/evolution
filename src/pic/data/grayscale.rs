@@ -33,13 +33,12 @@ impl PicData for GrayscaleData {
         h: u32,
         t: f32,
     ) -> Vec<u8> {
-        unsafe {
+        {
             let ts = S::Vf32::set1(t);
             let wf = S::Vf32::set1(w as f32);
             let hf = S::Vf32::set1(h as f32);
             let vec_len = (w * h * 4) as usize;
-            let mut result = Vec::<u8>::with_capacity(vec_len);
-            result.set_len(vec_len);
+            let mut result = vec![0u8; vec_len];
             let sm = StackMachine::<S>::build(&self.c);
             /*
             let mut min = 999999.0;
@@ -47,8 +46,7 @@ impl PicData for GrayscaleData {
             */
 
             let process = |(y_pixel, chunk): (usize, &mut [u8])| {
-                let mut stack = Vec::with_capacity(sm.instructions.len());
-                stack.set_len(sm.instructions.len());
+                let mut stack = vec![S::Vf32::zeroes(); sm.instructions.len()];
 
                 let y = S::Vf32::set1((y_pixel as f32 / h as f32) * 2.0 - 1.0);
                 let x_step = 2.0 / (w - 1) as f32;
@@ -81,9 +79,9 @@ impl PicData for GrayscaleData {
                         chunk[ij4] = c;
                         chunk[ij4 + 1] = c;
                         chunk[ij4 + 2] = c;
-                        chunk[ij4 + 3] = 255 as u8;
+                        chunk[ij4 + 3] = 255_u8;
                     }
-                    x = x + x_step;
+                    x += x_step;
                 }
             };
 

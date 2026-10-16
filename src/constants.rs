@@ -14,13 +14,13 @@ pub const PIC_GRADIENT_SIZE: usize = 512;
 
 #[cfg(feature = "ui")]
 pub mod exec {
-    pub const EXEC_NAME: &'static str = "Evolution";
+    pub const EXEC_NAME: &str = "Evolution";
     pub const EXEC_UI_THUMB_ROWS: usize = 15;
     pub const EXEC_UI_THUMB_COLS: usize = 14;
     pub const EXEC_UI_THUMB_WIDTH: u32 = 128;
     pub const EXEC_UI_THUMB_HEIGHT: u32 = 72;
-    pub const DEFAULT_PICTURES_PATH: &'static str = "pictures";
-    pub const DEFAULT_FILE_OUT: &'static str = "out.png";
+    pub const DEFAULT_PICTURES_PATH: &str = "pictures";
+    pub const DEFAULT_FILE_OUT: &str = "out.png";
     pub const DEFAULT_FPS: u16 = 15;
     pub const DEFAULT_VIDEO_DURATION: f32 = 5000.0; //milliseconds
 }

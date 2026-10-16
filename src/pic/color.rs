@@ -1,7 +1,7 @@
 use rand::prelude::*;
 use rand::rngs::StdRng;
 
-/// Taken from https://docs.rs/ggez/0.8.1/src/ggez/graphics/types.rs.html#335-340
+/// Taken from <https://docs.rs/ggez/0.8.1/src/ggez/graphics/types.rs.html#335-340>
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Color {
     pub r: f32,

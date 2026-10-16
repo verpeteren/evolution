@@ -13,11 +13,11 @@ impl Button {
         Button { pic, rect }
     }
     pub fn hit(&self, x: u32, y: u32) -> bool {
-        let within = self.rect.x <= x
+        
+        self.rect.x <= x
             && x < (self.rect.x + self.rect.width)
             && self.rect.y <= y
-            && y < (self.rect.y + self.rect.height);
-        within
+            && y < (self.rect.y + self.rect.height)
     }
 }
 

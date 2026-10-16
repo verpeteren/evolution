@@ -85,7 +85,7 @@ impl<'a> Lexer<'a> {
             }
         } else {
             self.backup();
-            return false;
+            false
         }
     }
 
@@ -102,7 +102,7 @@ impl<'a> Lexer<'a> {
     fn lex_operation(l: &mut Lexer) -> Option<StateFunction> {
         l.accept_run("+-/*%abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.");
         l.emit(Token::Operation(&l.input[l.start..l.pos], l.current_line));
-        return Some(StateFunction(Lexer::determine_token));
+        Some(StateFunction(Lexer::determine_token))
     }
 
     fn lex_number(l: &mut Lexer) -> Option<StateFunction> {
@@ -118,32 +118,30 @@ impl<'a> Lexer<'a> {
         } else {
             l.emit(Token::Constant(&l.input[l.start..l.pos], l.current_line));
         }
-        return Some(StateFunction(Lexer::determine_token));
+        Some(StateFunction(Lexer::determine_token))
     }
 
     fn determine_token(l: &mut Lexer) -> Option<StateFunction> {
         loop {
-            match l.next() {
-                Some(c) => {
-                    if Lexer::is_white_space(c) {
-                        l.ignore();
-                    } else if c == '(' {
-                        l.emit(Token::OpenParen(l.current_line));
-                    } else if c == ')' {
-                        l.emit(Token::CloseParen(l.current_line));
-                    } else if Lexer::is_start_of_number(c) {
-                        return Some(StateFunction(Lexer::lex_number));
-                    } else {
-                        return Some(StateFunction(Lexer::lex_operation));
-                    }
+            {
+                let c = l.next()?;
+                if Lexer::is_white_space(c) {
+                    l.ignore();
+                } else if c == '(' {
+                    l.emit(Token::OpenParen(l.current_line));
+                } else if c == ')' {
+                    l.emit(Token::CloseParen(l.current_line));
+                } else if Lexer::is_start_of_number(c) {
+                    return Some(StateFunction(Lexer::lex_number));
+                } else {
+                    return Some(StateFunction(Lexer::lex_operation));
                 }
-                None => return None,
             }
         }
     }
 
     fn is_start_of_number(c: char) -> bool {
-        (c >= '0' && c <= '9') || c == '-' || c == '.'
+        c.is_ascii_digit() || c == '-' || c == '.'
     }
 
     fn is_white_space(c: char) -> bool {
@@ -171,16 +169,15 @@ pub fn lisp_to_pic(code: String, coord: CoordinateSystem) -> Result<Pic, String>
     pic_opt.unwrap()
 }
 
-#[must_use]
 pub fn expect_open_paren(receiver: &Receiver<Token>) -> Result<(), String> {
     let open_paren = receiver.recv().map_err(|_| "Unexpected end of file")?;
     match open_paren {
         Token::OpenParen(_) => Ok(()),
         Token::Operation(v, line) | Token::Constant(v, line) => {
-            return Err(format!("Expected '(' on line {}, got a '{}'", line, v))
+            Err(format!("Expected '(' on line {}, got a '{}'", line, v))
         }
         _ => {
-            return Err(format!(
+            Err(format!(
                 "Expected '(' on line {}",
                 extract_line_number(&open_paren)
             ))
@@ -188,13 +185,12 @@ pub fn expect_open_paren(receiver: &Receiver<Token>) -> Result<(), String> {
     }
 }
 
-#[must_use]
 pub fn expect_close_paren(receiver: &Receiver<Token>) -> Result<(), String> {
     let close_paren = receiver.recv().map_err(|_| "Unexpected end of file")?;
     match close_paren {
         Token::CloseParen(_) => Ok(()),
         _ => {
-            return Err(format!(
+            Err(format!(
                 "Expected '(' on line {}",
                 extract_line_number(&close_paren)
             ))
@@ -202,7 +198,6 @@ pub fn expect_close_paren(receiver: &Receiver<Token>) -> Result<(), String> {
     }
 }
 
-#[must_use]
 pub fn expect_operation(s: &str, receiver: &Receiver<Token>) -> Result<(), String> {
     let op = receiver.recv().map_err(|_| "Unexpected end of file")?;
     match op {
@@ -219,7 +214,7 @@ pub fn expect_operation(s: &str, receiver: &Receiver<Token>) -> Result<(), Strin
             }
         }
         _ => {
-            return Err(format!(
+            Err(format!(
                 "Expected '{}' on line {}, found {:?}",
                 s,
                 extract_line_number(&op),
@@ -229,26 +224,21 @@ pub fn expect_operation(s: &str, receiver: &Receiver<Token>) -> Result<(), Strin
     }
 }
 
-#[must_use]
 pub fn expect_operations(ops: Vec<&str>, receiver: &Receiver<Token>) -> Result<String, String> {
     let op = receiver.recv().map_err(|_| "Unexpected end of file")?;
     for s in ops {
-        match op {
-            Token::Operation(op_str, _) => {
-                if op_str.to_lowercase() == s.to_lowercase() {
-                    return Ok(op_str.to_string());
-                }
+        if let Token::Operation(op_str, _) = op {
+            if op_str.to_lowercase() == s.to_lowercase() {
+                return Ok(op_str.to_string());
             }
-            _ => (),
         }
     }
-    return Err(format!(
+    Err(format!(
         "Unexpected token on line {}",
         extract_line_number(&op),
-    ));
+    ))
 }
 
-#[must_use]
 pub fn expect_constant(receiver: &Receiver<Token>) -> Result<f32, String> {
     let op = receiver.recv().map_err(|_| "Unexpected end of file")?;
     match op {
@@ -259,7 +249,7 @@ pub fn expect_constant(receiver: &Receiver<Token>) -> Result<f32, String> {
             Ok(v)
         }
         _ => {
-            return Err(format!(
+            Err(format!(
                 "Expected constant on line {}, found {:?}",
                 extract_line_number(&op),
                 op
@@ -378,14 +368,14 @@ pub fn parse_pic(
                     }
                 }
                 Ok(Pic::Gradient(GradientData {
-                    colors: colors,
+                    colors,
                     index: APTNode::parse_apt_node(receiver)?,
                     coord,
                 }))
             }
             _ => Err(format!("Unknown pic type {} at line {}", s, line_number)),
         },
-        _ => Err(format!("Invalid picture type")), //todo line number etc
+        _ => Err("Invalid picture type".to_string()), //todo line number etc
     }
 }
 
@@ -417,7 +407,7 @@ mod tests {
     use super::*;
     use std::sync::mpsc::channel;
 
-    const CODE: &'static str = r#"( RGB
+    const CODE: &str = r#"( RGB
     ( Sqrt ( Sin ( Abs Y ) ) )
     ( Atan ( Atan2 ( + X ( / ( Ridge Y -0.30377412 Y ) -0.4523425 ) ) ( + ( Turbulence 0.95225644 ( Tan Y ) Y ) -0.46079302 ) ) )
     ( Cell1 ( Ridge ( Ridge Y -0.83537865 -0.50440097 ) ( Atan2 Y X ) ( Sin 0.20003605 ) ) ( Sqrt ( Cell1 ( FBM Y X 0.8879242 ) 0.23509383 -0.4539826 ) ) ( Atan2 ( * X ( Ridge 0.6816149 X Y ) ) ( Cell1 ( Sin ( Turbulence X -0.25605845 Y ) ) -0.30595016 Y ) ) ) )
@@ -427,14 +417,12 @@ mod tests {
     fn test_lexer_next_linebreak() {
         let (sender, _receiver) = channel::<Token>();
         let mut lexer = mock::mock_lexer(CODE, sender);
-        let expected = vec![
-            (0, 0, 1, 1, 0),
+        let expected = [(0, 0, 1, 1, 0),
             (1, 0, 2, 1, 0),
             (2, 0, 3, 1, 0),
             (3, 0, 4, 1, 0),
             (4, 0, 5, 1, 0),
-            (5, 0, 6, 1, 1),
-        ];
+            (5, 0, 6, 1, 1)];
         for (i, exp) in expected.iter().enumerate() {
             lexer.next();
             assert_eq!((i, lexer.start), (exp.0, exp.1));
@@ -493,14 +481,14 @@ mod tests {
     fn test_lexer_accept_start_ok() {
         let (sender, _receiver) = channel::<Token>();
         let mut lexer = mock::mock_lexer(CODE, sender);
-        assert_eq!(lexer.accept("("), true);
+        assert!(lexer.accept("("));
     }
 
     #[test]
     fn test_lexer_accept_start_not_ok() {
         let (sender, _receiver) = channel::<Token>();
         let mut lexer = mock::mock_lexer(CODE, sender);
-        assert_eq!(lexer.accept(")"), false);
+        assert!(!lexer.accept(")"));
     }
 
     #[test]
@@ -508,7 +496,7 @@ mod tests {
         let (sender, _receiver) = channel::<Token>();
         let mut lexer = mock::mock_lexer(CODE, sender);
         lexer.next();
-        assert_eq!(lexer.accept(" \t"), true);
+        assert!(lexer.accept(" \t"));
     }
 
     #[test]
@@ -516,7 +504,7 @@ mod tests {
         let (sender, _receiver) = channel::<Token>();
         let mut lexer = mock::mock_lexer(CODE, sender);
         lexer.next();
-        assert_eq!(lexer.accept("abcdef"), false);
+        assert!(!lexer.accept("abcdef"));
     }
 
     #[test]
@@ -526,32 +514,32 @@ mod tests {
         for _i in 0..CODE.len() {
             lexer.next();
         }
-        assert_eq!(lexer.accept(")"), false);
+        assert!(!lexer.accept(")"));
     }
 
     #[test]
     fn test_is_start_of_number() {
-        assert_eq!(Lexer::is_start_of_number('a'), false);
-        assert_eq!(Lexer::is_start_of_number('0'), true);
-        assert_eq!(Lexer::is_start_of_number('9'), true);
+        assert!(!Lexer::is_start_of_number('a'));
+        assert!(Lexer::is_start_of_number('0'));
+        assert!(Lexer::is_start_of_number('9'));
     }
 
     #[test]
     fn test_is_white_space() {
-        assert_eq!(Lexer::is_white_space('a'), false);
-        assert_eq!(Lexer::is_white_space(' '), true);
-        assert_eq!(Lexer::is_white_space('\t'), true);
-        assert_eq!(Lexer::is_white_space('\n'), true);
-        assert_eq!(Lexer::is_white_space('\r'), true);
+        assert!(!Lexer::is_white_space('a'));
+        assert!(Lexer::is_white_space(' '));
+        assert!(Lexer::is_white_space('\t'));
+        assert!(Lexer::is_white_space('\n'));
+        assert!(Lexer::is_white_space('\r'));
     }
 
     #[test]
     fn test_is_linebreak() {
-        assert_eq!(Lexer::is_linebreak('a'), false);
-        assert_eq!(Lexer::is_linebreak(' '), false);
-        assert_eq!(Lexer::is_linebreak('\t'), false);
-        assert_eq!(Lexer::is_linebreak('\n'), true);
-        assert_eq!(Lexer::is_linebreak('\r'), false);
+        assert!(!Lexer::is_linebreak('a'));
+        assert!(!Lexer::is_linebreak(' '));
+        assert!(!Lexer::is_linebreak('\t'));
+        assert!(Lexer::is_linebreak('\n'));
+        assert!(!Lexer::is_linebreak('\r'));
     }
 
     // todo: refactor into a separate module e.g. parser::token

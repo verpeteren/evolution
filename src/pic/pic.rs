@@ -67,7 +67,8 @@ impl Pic {
     pub fn new(rng: &mut StdRng, pic_names: &Vec<&String>) -> Self {
         let pic_type = rng.random_range(0..5);
 
-        let pic = match pic_type {
+        
+        match pic_type {
             0 => MonoData::new(
                 PIC_RANDOM_TREE_MIN,
                 PIC_RANDOM_TREE_MAX,
@@ -104,8 +105,7 @@ impl Pic {
                 pic_names,
             ),
             _ => panic!("invalid"),
-        };
-        pic
+        }
     }
 
     pub fn simplify<S: Simd>(
@@ -238,7 +238,7 @@ impl Pic {
             Pic::RGB(data) => vec![&data.r, &data.g, &data.b],
             Pic::HSV(data) => vec![&data.h, &data.s, &data.v],
         };
-        while children.len() > 0 {
+        while !children.is_empty() {
             if let Some(child) = children.pop() {
                 if child.is_leaf() {
                     if *child == APTNode::T {
@@ -306,7 +306,7 @@ mod tests {
         assert!(sexpr.contains("\n\t( COLORS\n\t"));
         assert!(sexpr.contains("\n\t)\n\t"));
         assert!(sexpr.contains("\n\t\t( COLOR ") || sexpr.contains("\n\t\t( STOPCOLOR "));
-        assert!(sexpr.lines().collect::<Vec<_>>().len() > 0);
+        assert!(!sexpr.lines().collect::<Vec<_>>().is_empty());
     }
 
     #[test]
@@ -716,9 +716,9 @@ mod tests {
         );
     }
 
-    fn render_source_and_read_sample_file<'a>(
+    fn render_source_and_read_sample_file(
         source: String,
-        sample_file: &'a str,
+        sample_file: &str,
         overwrite: bool,
     ) -> (DynamicImage, DynamicImage) {
         let pictures = Arc::new(HashMap::new());
@@ -749,7 +749,7 @@ mod tests {
         let read_img = ImageReader::open(sample_file).unwrap().decode().unwrap();
         let read = DynamicImage::ImageRgba8(read_img.into_rgba8());
 
-        return (generated, read);
+        (generated, read)
     }
 
     #[test]
@@ -834,14 +834,14 @@ mod tests {
     fn test_has_t_apt() {
         let source = r#"( MONO POLAR ( MAX X Y ) )"#;
         let pic = lisp_to_pic(source.to_string(), DEFAULT_COORDINATE_SYSTEM).unwrap();
-        assert_eq!(pic.can_animate(), false);
+        assert!(!pic.can_animate());
 
         let source = r#"( GRAYSCALE POLAR ( MAX T Y ) )"#;
         let pic = lisp_to_pic(source.to_string(), DEFAULT_COORDINATE_SYSTEM).unwrap();
-        assert_eq!(pic.can_animate(), true);
+        assert!(pic.can_animate());
 
         let source = r#"( RGB CARTESIAN ( ( x ) ( Y )  ( T ) ) )"#;
         let pic = lisp_to_pic(source.to_string(), DEFAULT_COORDINATE_SYSTEM).unwrap();
-        assert_eq!(pic.can_animate(), true);
+        assert!(pic.can_animate());
     }
 }

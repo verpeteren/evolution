@@ -123,7 +123,7 @@ fn main_cli(args: &Args) -> Result<(PathBuf, PathBuf), String> {
     let input_filename = args.input.as_ref().expect("Invalid filename");
     let (width, height, t) = (args.width, args.height, args.time);
     assert!(t >= 0.0);
-    let pic_path = get_picture_path(&args);
+    let pic_path = get_picture_path(args);
     let pictures = Arc::new(
         load_pictures(pic_path.as_path())
             .map_err(|e| format!("Cannot load picture folder. {:?}", e))?,
@@ -143,18 +143,17 @@ fn main_cli(args: &Args) -> Result<(PathBuf, PathBuf), String> {
     pic_simplify(&mut pic, pictures.clone(), width, height, t);
     let out_file = Path::new(out_filename);
     let (format, mut is_video) = select_image_format(out_file);
-    if is_video {
-        if !pic.can_animate() {
+    if is_video
+        && !pic.can_animate() {
             println!("warning: the T Operator is needed to make an animation");
             is_video = false;
         }
-    }
     if is_video {
         assert_eq!(format, ImageFormat::Gif);
         let duration = if t == 0.0 { DEFAULT_VIDEO_DURATION } else { t };
         let raw_frames =
             pic_get_video(&pic, pictures, width, height, DEFAULT_FPS, duration);
-        if raw_frames.len() == 0 {
+        if raw_frames.is_empty() {
             println!("warning: not enough frames to make a usefull gif");
         } else {
             let file_out = File::create(out_file).unwrap();
@@ -162,7 +161,7 @@ fn main_cli(args: &Args) -> Result<(PathBuf, PathBuf), String> {
             encoder.set_repeat(Repeat::Infinite).unwrap();
             for rgba8 in raw_frames {
                 let gen_buf = ImageBuffer::from_raw(width, height, rgba8).unwrap();
-                let rgba_img = gen_buf.into();
+                let rgba_img = gen_buf;
                 let frame = Frame::new(rgba_img);
                 encoder.encode_frame(frame).unwrap();
             }
@@ -252,14 +251,14 @@ pub fn main() {
                                 // todo better handle errors during run
                                 if let Ok((sexpr_filename, img_filename)) = main_cli(&args) {
                                     let dest = filename_to_copy_to(
-                                        &target_dir,
+                                        target_dir,
                                         now,
                                         &sexpr_filename.file_name().unwrap().to_string_lossy(),
                                     );
                                     copy(&sexpr_filename, dest.as_path()).unwrap();
 
                                     let dest = filename_to_copy_to(
-                                        &target_dir,
+                                        target_dir,
                                         now,
                                         &img_filename.file_name().unwrap().to_string_lossy(),
                                     );
@@ -295,75 +294,75 @@ mod tests {
     #[test]
     fn test_select_image_format() {
         assert_eq!(
-            select_image_format(&Path::new("somefile.tga")),
+            select_image_format(Path::new("somefile.tga")),
             (ImageFormat::Tga, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.dds")),
+            select_image_format(Path::new("somefile.dds")),
             (ImageFormat::Dds, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.hdr")),
+            select_image_format(Path::new("somefile.hdr")),
             (ImageFormat::Hdr, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.farb")),
+            select_image_format(Path::new("somefile.farb")),
             (ImageFormat::Farbfeld, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.gif")),
+            select_image_format(Path::new("somefile.gif")),
             (ImageFormat::Gif, true)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.avi")),
+            select_image_format(Path::new("somefile.avi")),
             (ImageFormat::Avif, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.bmp")),
+            select_image_format(Path::new("somefile.bmp")),
             (ImageFormat::Bmp, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.ico")),
+            select_image_format(Path::new("somefile.ico")),
             (ImageFormat::Ico, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.webp")),
+            select_image_format(Path::new("somefile.webp")),
             (ImageFormat::WebP, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.pnm")),
+            select_image_format(Path::new("somefile.pnm")),
             (ImageFormat::Pnm, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.tiff")),
+            select_image_format(Path::new("somefile.tiff")),
             (ImageFormat::Tiff, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.tif")),
+            select_image_format(Path::new("somefile.tif")),
             (ImageFormat::Tiff, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.jpeg")),
+            select_image_format(Path::new("somefile.jpeg")),
             (ImageFormat::Jpeg, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.jpg")),
+            select_image_format(Path::new("somefile.jpg")),
             (ImageFormat::Jpeg, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.png")),
+            select_image_format(Path::new("somefile.png")),
             (ImageFormat::Png, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.Png")),
+            select_image_format(Path::new("somefile.Png")),
             (ImageFormat::Png, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("somefile.PNG")),
+            select_image_format(Path::new("somefile.PNG")),
             (ImageFormat::Png, false)
         );
         assert_eq!(
-            select_image_format(&Path::new("./somedir")),
+            select_image_format(Path::new("./somedir")),
             (ImageFormat::Png, false)
         );
     }

@@ -150,21 +150,21 @@ impl APTNode {
             ),
             APTNode::Constant(v) => {
                 if v == &std::f32::consts::PI {
-                    format!("PI")
+                    "PI".to_string()
                 } else if v == &std::f32::consts::E {
-                    format!("E")
+                    "E".to_string()
                 } else {
                     format!("{}", v)
                 }
             }
-            APTNode::Width => format!("WIDTH"),
-            APTNode::Height => format!("HEIGHT"),
-            APTNode::PI => format!("PI"),
-            APTNode::E => format!("E"),
-            APTNode::X => format!("X"),
-            APTNode::Y => format!("Y"),
-            APTNode::T => format!("T"),
-            APTNode::Empty => format!("EMPTY"),
+            APTNode::Width => "WIDTH".to_string(),
+            APTNode::Height => "HEIGHT".to_string(),
+            APTNode::PI => "PI".to_string(),
+            APTNode::E => "E".to_string(),
+            APTNode::X => "X".to_string(),
+            APTNode::Y => "Y".to_string(),
+            APTNode::T => "T".to_string(),
+            APTNode::Empty => "EMPTY".to_string(),
         }
     }
 
@@ -237,11 +237,11 @@ impl APTNode {
             "y" => Ok(APTNode::Y),
             "t" => Ok(APTNode::T),
             _ => {
-                if lower.starts_with("pic-") {
-                    let name = lower[4..].to_owned();
+                if let Some(name) = lower.strip_prefix("pic-") {
+                    let name = name.to_owned();
                     Ok(APTNode::Picture(name, vec![APTNode::Empty, APTNode::Empty]))
                 } else {
-                    Err(format!("Unknown operation '{}' ", s.to_string()))
+                    Err(format!("Unknown operation '{}' ", s))
                 }
             }
         }
@@ -256,9 +256,9 @@ impl APTNode {
         }
     }
 
-    pub fn pick_random_node(rng: &mut StdRng, pic_names: &Vec<&String>) -> APTNode {
+    pub fn pick_random_node(rng: &mut StdRng, pic_names: &[&String]) -> APTNode {
         let ignore_variant_count = 9;
-        let ignore_pictures = if pic_names.len() == 0 { 1 } else { 0 };
+        let ignore_pictures = if pic_names.is_empty() { 1 } else { 0 };
         let r = rng.random_range(0..APTNode::VARIANT_COUNT - ignore_variant_count - ignore_pictures);
 
         match r {
@@ -322,7 +322,7 @@ impl APTNode {
             24 => APTNode::Mandelbrot(vec![APTNode::Empty, APTNode::Empty]),
             // Pictures should be the last one (see _ignore_pictures variable)
             25 => {
-                let r = rng.random_range(0..pic_names.len()) as usize;
+                let r = rng.random_range(0..pic_names.len());
                 APTNode::Picture(
                     pic_names[r].to_string(),
                     vec![APTNode::Empty, APTNode::Empty],
@@ -369,24 +369,25 @@ impl APTNode {
         match self.get_children_mut() {
             None => false,
             Some(children) => {
-                for i in 0..children.len() {
-                    match children[i] {
+                for child in children.iter_mut() {
+                    match child {
                         APTNode::Empty => {
-                            children[i] = leaf.clone();
+                            *child = leaf.clone();
                             return true;
                         }
                         _ => {
-                            if !children[i].is_leaf() && children[i].add_leaf(leaf) {
+                            if !child.is_leaf() && child.add_leaf(leaf) {
                                 return true;
                             }
                         }
                     }
                 }
-                return false;
+                false
             }
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn constant_eval<S: Simd>(
         &self,
         coord: &CoordinateSystem,
@@ -456,7 +457,7 @@ impl APTNode {
             | APTNode::Max(children)
             | APTNode::Min(children)
             | APTNode::Mandelbrot(children)
-            | APTNode::Picture(_, children) => unsafe {
+            | APTNode::Picture(_, children) => {
                 let mut sx = S::Vf32::set1(0.0);
                 let mut sy = S::Vf32::set1(0.0);
                 let mut st = S::Vf32::set1(0.0);
@@ -473,7 +474,7 @@ impl APTNode {
                     },
                     APTNode::T => match t {
                         None => panic!("invalid node passed to constant_esval"),
-                        Some(value) => st = S::Vf32::set1(value as f32),
+                        Some(value) => st = S::Vf32::set1(value),
                     },
                     APTNode::X => match x {
                         None => panic!("invalid node passed to constant_esval"),
@@ -486,8 +487,7 @@ impl APTNode {
                     _ => {}
                 });
                 let sm = StackMachine::<S>::build(self);
-                let mut stack = Vec::with_capacity(sm.instructions.len());
-                stack.set_len(sm.instructions.len());
+                let mut stack = vec![S::Vf32::zeroes(); sm.instructions.len()];
 
                 let v = if coord == &CoordinateSystem::Cartesian {
                     sm.execute(&mut stack, pics, sx, sy, st, sw, sh)
@@ -541,6 +541,7 @@ impl APTNode {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn constant_fold<S: Simd>(
         &self,
         coord: &CoordinateSystem,
@@ -575,15 +576,15 @@ impl APTNode {
                     .iter()
                     .map(|child| child.constant_fold::<S>(coord, pics.clone(), x, y, w, h, t))
                     .collect();
-                if folded_children.iter().all(|child| match child {
-                    APTNode::Constant(_) => true,
-                    _ => false,
-                }) {
+                if folded_children
+                    .iter()
+                    .all(|child| matches!(child, APTNode::Constant(_)))
+                {
                     let clone = self.set_children(folded_children);
                     APTNode::Constant(clone.constant_eval::<S>(coord, pics.clone(), x, y, w, h, t))
                 } else {
-                    let clone = self.set_children(folded_children);
-                    clone
+                    
+                    self.set_children(folded_children)
                 }
             }
         }
@@ -674,18 +675,18 @@ impl APTNode {
     }
 
     pub fn is_leaf(&self) -> bool {
-        match self {
+        matches!(
+            self,
             APTNode::Width
-            | APTNode::Height
-            | APTNode::PI
-            | APTNode::E
-            | APTNode::X
-            | APTNode::Y
-            | APTNode::T
-            | APTNode::Constant(_)
-            | APTNode::Empty => true,
-            _ => false,
-        }
+                | APTNode::Height
+                | APTNode::PI
+                | APTNode::E
+                | APTNode::X
+                | APTNode::Y
+                | APTNode::T
+                | APTNode::Constant(_)
+                | APTNode::Empty
+        )
     }
 
     pub fn parse_apt_node(receiver: &Receiver<Token>) -> Result<APTNode, String> {
@@ -1113,13 +1114,13 @@ mod tests {
     #[test]
     fn test_aptnode_add_leaf() {
         let mut root = APTNode::Add(vec![APTNode::Empty, APTNode::Empty]);
-        assert_eq!(root.add_leaf(&APTNode::Constant(1.0)), true);
-        assert_eq!(root.add_leaf(&APTNode::Constant(2.1)), true);
+        assert!(root.add_leaf(&APTNode::Constant(1.0)));
+        assert!(root.add_leaf(&APTNode::Constant(2.1)));
         assert_eq!(
             root,
             APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)])
         );
-        assert_eq!(root.add_leaf(&APTNode::Constant(3.1)), false);
+        assert!(!root.add_leaf(&APTNode::Constant(3.1)));
         assert_eq!(
             root,
             APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)])
@@ -1939,8 +1940,8 @@ mod tests {
         assert_eq!(
             APTNode::str_to_node("/")
                 .unwrap()
-                .set_children(vec![APTNode::Constant(0.0), APTNode::Constant(9992.1111)]),
-            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9992.1111)])
+                .set_children(vec![APTNode::Constant(0.0), APTNode::Constant(9_992.111)]),
+            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9_992.111)])
         );
 
         assert_eq!(
@@ -2274,7 +2275,7 @@ mod tests {
             2
         );
         assert_eq!(
-            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9992.1111)])
+            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9_992.111)])
                 .get_children_mut()
                 .unwrap()
                 .len(),
@@ -2473,7 +2474,7 @@ mod tests {
             2
         );
         assert_eq!(
-            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9992.1111)])
+            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9_992.111)])
                 .get_children()
                 .unwrap()
                 .len(),
@@ -2650,91 +2651,76 @@ mod tests {
 
     #[test]
     fn test_aptnode_aptnode_is_leaf() {
-        assert_eq!(
-            APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)]).is_leaf(),
-            false
+        assert!(
+            !APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)]).is_leaf()
         );
-        assert_eq!(
-            APTNode::Sub(vec![APTNode::Constant(1.1), APTNode::Constant(2.0)]).is_leaf(),
-            false
+        assert!(
+            !APTNode::Sub(vec![APTNode::Constant(1.1), APTNode::Constant(2.0)]).is_leaf()
         );
-        assert_eq!(
-            APTNode::Mul(vec![APTNode::Constant(1.0), APTNode::Constant(2.0)]).is_leaf(),
-            false
+        assert!(
+            !APTNode::Mul(vec![APTNode::Constant(1.0), APTNode::Constant(2.0)]).is_leaf()
         );
-        assert_eq!(
-            APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9992.1111)]).is_leaf(),
-            false
+        assert!(
+            !APTNode::Div(vec![APTNode::Constant(0.0), APTNode::Constant(9_992.111)]).is_leaf()
         );
-        assert_eq!(
-            APTNode::FBM(vec![
+        assert!(
+            !APTNode::FBM(vec![
                 APTNode::Constant(0.0),
                 APTNode::Constant(1.1),
                 APTNode::Constant(2.2)
             ])
-            .is_leaf(),
-            false
+            .is_leaf()
         );
-        assert_eq!(
-            APTNode::Ridge(mock::mock_params_ridge(true)).is_leaf(),
-            false
+        assert!(
+            !APTNode::Ridge(mock::mock_params_ridge(true)).is_leaf()
         );
-        assert_eq!(
-            APTNode::Cell1(mock::mock_params_cell1(true)).is_leaf(),
-            false
+        assert!(
+            !APTNode::Cell1(mock::mock_params_cell1(true)).is_leaf()
         );
-        assert_eq!(
-            APTNode::Cell2(mock::mock_params_cell2(true)).is_leaf(),
-            false
+        assert!(
+            !APTNode::Cell2(mock::mock_params_cell2(true)).is_leaf()
         );
-        assert_eq!(
-            APTNode::Turbulence(mock::mock_params_turbulence(true)).is_leaf(),
-            false
+        assert!(
+            !APTNode::Turbulence(mock::mock_params_turbulence(true)).is_leaf()
         );
-        assert_eq!(APTNode::Sqrt(mock::mock_params_sqrt(true)).is_leaf(), false);
-        assert_eq!(APTNode::Sin(mock::mock_params_sin(true)).is_leaf(), false);
-        assert_eq!(APTNode::Atan(mock::mock_params_atan(true)).is_leaf(), false);
-        assert_eq!(
-            APTNode::Atan2(mock::mock_params_atan2(true)).is_leaf(),
-            false
+        assert!(!APTNode::Sqrt(mock::mock_params_sqrt(true)).is_leaf());
+        assert!(!APTNode::Sin(mock::mock_params_sin(true)).is_leaf());
+        assert!(!APTNode::Atan(mock::mock_params_atan(true)).is_leaf());
+        assert!(
+            !APTNode::Atan2(mock::mock_params_atan2(true)).is_leaf()
         );
-        assert_eq!(APTNode::Tan(mock::mock_params_tan(true)).is_leaf(), false);
-        assert_eq!(APTNode::Log(mock::mock_params_log(true)).is_leaf(), false);
-        assert_eq!(APTNode::Abs(mock::mock_params_abs(true)).is_leaf(), false);
-        assert_eq!(
-            APTNode::Floor(mock::mock_params_floor(true)).is_leaf(),
-            false
+        assert!(!APTNode::Tan(mock::mock_params_tan(true)).is_leaf());
+        assert!(!APTNode::Log(mock::mock_params_log(true)).is_leaf());
+        assert!(!APTNode::Abs(mock::mock_params_abs(true)).is_leaf());
+        assert!(
+            !APTNode::Floor(mock::mock_params_floor(true)).is_leaf()
         );
-        assert_eq!(APTNode::Ceil(mock::mock_params_ceil(true)).is_leaf(), false);
-        assert_eq!(
-            APTNode::Clamp(mock::mock_params_clamp(true)).is_leaf(),
-            false
+        assert!(!APTNode::Ceil(mock::mock_params_ceil(true)).is_leaf());
+        assert!(
+            !APTNode::Clamp(mock::mock_params_clamp(true)).is_leaf()
         );
-        assert_eq!(APTNode::Wrap(mock::mock_params_wrap(true)).is_leaf(), false);
-        assert_eq!(
-            APTNode::Square(mock::mock_params_square(true)).is_leaf(),
-            false
+        assert!(!APTNode::Wrap(mock::mock_params_wrap(true)).is_leaf());
+        assert!(
+            !APTNode::Square(mock::mock_params_square(true)).is_leaf()
         );
-        assert_eq!(APTNode::Max(mock::mock_params_max(true)).is_leaf(), false);
-        assert_eq!(APTNode::Min(mock::mock_params_min(true)).is_leaf(), false);
-        assert_eq!(APTNode::Mod(mock::mock_params_mod(true)).is_leaf(), false);
-        assert_eq!(
-            APTNode::Mandelbrot(mock::mock_params_mandelbrot(true)).is_leaf(),
-            false
+        assert!(!APTNode::Max(mock::mock_params_max(true)).is_leaf());
+        assert!(!APTNode::Min(mock::mock_params_min(true)).is_leaf());
+        assert!(!APTNode::Mod(mock::mock_params_mod(true)).is_leaf());
+        assert!(
+            !APTNode::Mandelbrot(mock::mock_params_mandelbrot(true)).is_leaf()
         );
-        assert_eq!(
-            APTNode::Picture("eye.jpg".to_string(), mock::mock_params_picture(true)).is_leaf(),
-            false
+        assert!(
+            !APTNode::Picture("eye.jpg".to_string(), mock::mock_params_picture(true)).is_leaf()
         );
-        assert_eq!(APTNode::Constant(1.2).is_leaf(), true);
-        assert_eq!(APTNode::X.is_leaf(), true);
-        assert_eq!(APTNode::Width.is_leaf(), true);
-        assert_eq!(APTNode::Height.is_leaf(), true);
-        assert_eq!(APTNode::PI.is_leaf(), true);
-        assert_eq!(APTNode::E.is_leaf(), true);
-        assert_eq!(APTNode::Y.is_leaf(), true);
-        assert_eq!(APTNode::T.is_leaf(), true);
-        assert_eq!(APTNode::Empty.is_leaf(), true);
+        assert!(APTNode::Constant(1.2).is_leaf());
+        assert!(APTNode::X.is_leaf());
+        assert!(APTNode::Width.is_leaf());
+        assert!(APTNode::Height.is_leaf());
+        assert!(APTNode::PI.is_leaf());
+        assert!(APTNode::E.is_leaf());
+        assert!(APTNode::Y.is_leaf());
+        assert!(APTNode::T.is_leaf());
+        assert!(APTNode::Empty.is_leaf());
     }
 
     #[test]
@@ -2760,7 +2746,7 @@ mod tests {
         for _i in 0..100 {
             match APTNode::pick_random_leaf(&mut rng) {
                 APTNode::Constant(value) => {
-                    assert!(value >= -1.0 && value <= 1.0);
+                    assert!((-1.0..=1.0).contains(&value));
                 }
                 APTNode::X | APTNode::Y | APTNode::Empty => {}
                 _ => {
@@ -2777,7 +2763,7 @@ mod tests {
         for _i in 0..100 {
             match APTNode::pick_random_leaf_video(&mut rng) {
                 APTNode::Constant(value) => {
-                    assert!(value >= -1.0 && value <= 1.0);
+                    assert!((-1.0..=1.0).contains(&value));
                 }
                 APTNode::X | APTNode::Y | APTNode::T | APTNode::Empty => {}
                 _ => {
@@ -2804,7 +2790,7 @@ mod tests {
         let that_node = APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)]);
         this_node.add_random(that_node.clone(), &mut rng);
         let kids = this_node.get_children().unwrap();
-        assert!(kids.get(0).unwrap() == &that_node || kids.get(1).unwrap() == &that_node);
+        assert!(kids.first().unwrap() == &that_node || kids.get(1).unwrap() == &that_node);
     }
 
     #[test]

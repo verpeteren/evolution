@@ -9,13 +9,14 @@ use minifb::{Key, MouseButton, MouseMode, Window};
 
 pub type FsmCbt = for<'a, 'b> fn(&'a mut State, &'b Window, Option<Pic>) -> FSM;
 
+#[allow(clippy::upper_case_acronyms)]
 pub struct FSM {
     pub cb: FsmCbt,
     pub stop: bool,
     pub pic: Option<Pic>,
 }
 
-impl<'c> Default for FSM {
+impl Default for FSM {
     fn default() -> Self {
         Self {
             cb: _fsm_regenerate,
@@ -25,7 +26,7 @@ impl<'c> Default for FSM {
     }
 }
 
-fn _fsm_regenerate<'a, 'b>(state: &'a mut State, _window: &'b Window, _pic: Option<Pic>) -> FSM {
+fn _fsm_regenerate(state: &mut State, _window: &Window, _pic: Option<Pic>) -> FSM {
     println!("repopulating, please be patient");
     state.generate_buttons();
     FSM {
@@ -34,10 +35,10 @@ fn _fsm_regenerate<'a, 'b>(state: &'a mut State, _window: &'b Window, _pic: Opti
     }
 }
 
-fn _fsm_select_prep<'a, 'b>(state: &'a mut State, _window: &'b Window, pic: Option<Pic>) -> FSM {
+fn _fsm_select_prep(state: &mut State, _window: &Window, pic: Option<Pic>) -> FSM {
     assert!(pic.is_none());
     assert_eq!(state.buttons.len(), EXEC_UI_THUMB_ROWS);
-    assert_eq!(state.buttons.get(0).unwrap().len(), EXEC_UI_THUMB_COLS);
+    assert_eq!(state.buttons.first().unwrap().len(), EXEC_UI_THUMB_COLS);
     let (twidth, theight) = keep_aspect_ratio(
         state.dimensions,
         (EXEC_UI_THUMB_WIDTH, EXEC_UI_THUMB_HEIGHT),
@@ -69,7 +70,7 @@ fn _fsm_select_prep<'a, 'b>(state: &'a mut State, _window: &'b Window, pic: Opti
     }
 }
 
-fn _fsm_select_show<'a, 'b>(state: &'a mut State, window: &'b Window, pic: Option<Pic>) -> FSM {
+fn _fsm_select_show(state: &mut State, window: &Window, pic: Option<Pic>) -> FSM {
     assert!(pic.is_none());
     if window.is_key_down(Key::Escape) {
         return FSM {
@@ -113,7 +114,7 @@ fn _fsm_select_show<'a, 'b>(state: &'a mut State, window: &'b Window, pic: Optio
     }
 }
 
-fn _fsm_zoom_prep<'a, 'b>(state: &'a mut State, window: &'b Window, wpic: Option<Pic>) -> FSM {
+fn _fsm_zoom_prep(state: &mut State, window: &Window, wpic: Option<Pic>) -> FSM {
     assert!(wpic.is_some());
     let pic = wpic.as_ref().unwrap();
     if window.is_key_down(Key::Escape) {
@@ -140,7 +141,7 @@ fn _fsm_zoom_prep<'a, 'b>(state: &'a mut State, window: &'b Window, wpic: Option
     }
 }
 
-fn _fsm_zoom_show<'a, 'b>(state: &'a mut State, window: &'b Window, wpic: Option<Pic>) -> FSM {
+fn _fsm_zoom_show(state: &mut State, window: &Window, wpic: Option<Pic>) -> FSM {
     assert!(wpic.is_some());
     let pic = wpic.as_ref().unwrap();
     if window.is_key_down(Key::Escape) {
@@ -166,7 +167,7 @@ fn _fsm_zoom_show<'a, 'b>(state: &'a mut State, window: &'b Window, wpic: Option
     }
 }
 
-fn _fsm_exit<'a, 'b>(_state: &'a mut State, _window: &'b Window, pic: Option<Pic>) -> FSM {
+fn _fsm_exit(_state: &mut State, _window: &Window, pic: Option<Pic>) -> FSM {
     assert!(pic.is_none());
     //todo: some cleanup here, before we set the stop flag
     FSM {

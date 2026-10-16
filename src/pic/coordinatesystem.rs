@@ -13,7 +13,7 @@ pub enum CoordinateSystem {
     Cartesian,
 }
 impl CoordinateSystem {
-    pub fn list_all<'a>() -> Vec<String> {
+    pub fn list_all() -> Vec<String> {
         vec![
             CoordinateSystem::Polar.to_string(),
             CoordinateSystem::Cartesian.to_string(),
@@ -54,7 +54,7 @@ impl Not for CoordinateSystem {
 
 #[inline(always)]
 pub fn cartesian_to_polar<S: Simd>(x: S::Vf32, y: S::Vf32) -> (S::Vf32, S::Vf32) {
-    unsafe {
+    {
         let zero = S::Vf32::set1(0.0);
         let pi = S::Vf32::set1(std::f32::consts::PI);
         let pix2 = S::Vf32::set1(std::f32::consts::PI * 2.0);

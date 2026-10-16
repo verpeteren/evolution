@@ -46,7 +46,7 @@ impl<S: Simd> StackMachine<S> {
             APTNode::Min(_) => Instruction::Min,
             APTNode::Mandelbrot(_) => Instruction::Mandelbrot,
             APTNode::Picture(name, _) => Instruction::Picture(name.to_string()),
-            APTNode::Constant(v) => Instruction::Constant(unsafe { S::Vf32::set1(*v) }),
+            APTNode::Constant(v) => Instruction::Constant(S::Vf32::set1(*v)),
             APTNode::Width => Instruction::Width,
             APTNode::Height => Instruction::Height,
             APTNode::PI => Instruction::PI,
@@ -59,13 +59,10 @@ impl<S: Simd> StackMachine<S> {
     }
 
     fn build_helper(&mut self, node: &APTNode) {
-        match node.get_children() {
-            Some(children) => {
-                for child in children.iter().rev() {
-                    self.build_helper(child);
-                }
+        if let Some(children) = node.get_children() {
+            for child in children.iter().rev() {
+                self.build_helper(child);
             }
-            None => (),
         }
         let instruction = StackMachine::get_instruction(node);
         //println!("pushing {:?}", node);
@@ -83,9 +80,9 @@ impl<S: Simd> StackMachine<S> {
     #[inline(always)]
     pub fn deal_with_nan(mut a: S::Vf32) -> S::Vf32 {
         for i in 0..S::Vf32::WIDTH {
-            if a[i] == std::f32::INFINITY {
+            if a[i] == f32::INFINITY {
                 a[i] = 1.0;
-            } else if a[i] == std::f32::NEG_INFINITY {
+            } else if a[i] == f32::NEG_INFINITY {
                 a[i] = -1.0;
             } else if a[i].is_nan() {
                 a[i] = 0.0;
@@ -94,9 +91,10 @@ impl<S: Simd> StackMachine<S> {
         a
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn execute(
         &self,
-        stack: &mut Vec<S::Vf32>,
+        stack: &mut [S::Vf32],
         pics: Arc<HashMap<String, ActualPicture>>,
         x: S::Vf32,
         y: S::Vf32,
@@ -104,7 +102,7 @@ impl<S: Simd> StackMachine<S> {
         w: S::Vf32,
         h: S::Vf32,
     ) -> S::Vf32 {
-        unsafe {
+        {
             let mut sp = 0;
             for ins in &self.instructions {
                 match ins {
@@ -223,7 +221,7 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Atan => {
                         stack[sp - 1] = (stack[sp - 1] * S::Vf32::set1(4.0)).atan_u35()
-                            * S::Vf32::set1(0.666666666);
+                            * S::Vf32::set1(0.666_666_7);
                     }
                     Instruction::Atan2 => {
                         sp -= 1;
@@ -257,11 +255,7 @@ impl<S: Simd> StackMachine<S> {
                     Instruction::Clamp => {
                         let mut v = stack[sp - 1];
                         for i in 0..S::Vf32::WIDTH {
-                            if v[i] > 1.0 {
-                                v[i] = 1.0
-                            } else if v[i] < -1.0 {
-                                v[i] = -1.0
-                            }
+                            v[i] = v[i].clamp(-1.0, 1.0);
                         }
                         stack[sp - 1] = v;
                     }
@@ -305,8 +299,8 @@ impl<S: Simd> StackMachine<S> {
                         let mut xpct = (x + S::Vf32::set1(1.0)) / S::Vf32::set1(2.0);
                         let mut ypct = (y + S::Vf32::set1(1.0)) / S::Vf32::set1(2.0);
                         for i in 0..S::Vf32::WIDTH {
-                            xpct[i] = xpct[i] % 1.0;
-                            ypct[i] = ypct[i] % 1.0;
+                            xpct[i] %= 1.0;
+                            ypct[i] %= 1.0;
                         }
                         let xi = (xpct * wf).cast_i32();
                         let yi = (ypct * hf).cast_i32();
@@ -626,13 +620,13 @@ mod tests {
 
     simd_runtime_generate!(
         fn impl_stackmachine_deal_with_nan() {
-            unsafe {
+            {
                 let zeros = S::Vf32::set1(0.0);
                 let ones = S::Vf32::set1(1.0);
                 let neg_ones = S::Vf32::set1(-1.0);
-                let neg_infs = S::Vf32::set1(std::f32::NEG_INFINITY);
-                let infs = S::Vf32::set1(std::f32::INFINITY);
-                let nans = S::Vf32::set1(std::f32::NAN);
+                let neg_infs = S::Vf32::set1(f32::NEG_INFINITY);
+                let infs = S::Vf32::set1(f32::INFINITY);
+                let nans = S::Vf32::set1(f32::NAN);
 
                 assert_eq!(StackMachine::<S>::deal_with_nan(ones)[0], ones[0]);
                 assert_eq!(StackMachine::<S>::deal_with_nan(zeros)[0], zeros[0]);

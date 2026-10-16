@@ -39,14 +39,13 @@ impl PicData for RGBData {
         h: u32,
         t: f32,
     ) -> Vec<u8> {
-        unsafe {
+        {
             let ts = S::Vf32::set1(t);
             let wf = S::Vf32::set1(w as f32);
             let hf = S::Vf32::set1(h as f32);
 
             let vec_len = (w * h * 4) as usize;
-            let mut result = Vec::<u8>::with_capacity(vec_len);
-            result.set_len(vec_len);
+            let mut result = vec![0u8; vec_len];
 
             let r_sm = StackMachine::<S>::build(&self.r);
             let g_sm = StackMachine::<S>::build(&self.g);
@@ -61,8 +60,7 @@ impl PicData for RGBData {
             .unwrap();
 
             let process = |(y_pixel, chunk): (usize, &mut [u8])| {
-                let mut stack = Vec::with_capacity(max_len);
-                stack.set_len(max_len);
+                let mut stack = vec![S::Vf32::zeroes(); max_len];
                 let y = S::Vf32::set1((y_pixel as f32 / h as f32) * 2.0 - 1.0);
                 let x_step = 2.0 / (w - 1) as f32;
                 let mut x = S::Vf32::zeroes();
@@ -109,9 +107,9 @@ impl PicData for RGBData {
                         chunk[ij4] = r;
                         chunk[ij4 + 1] = g;
                         chunk[ij4 + 2] = b;
-                        chunk[ij4 + 3] = 255 as u8;
+                        chunk[ij4 + 3] = 255_u8;
                     }
-                    x = x + x_step;
+                    x += x_step;
                 }
             };
             if threaded {

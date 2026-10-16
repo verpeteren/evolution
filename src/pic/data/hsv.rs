@@ -39,13 +39,12 @@ impl PicData for HSVData {
         h: u32,
         t: f32,
     ) -> Vec<u8> {
-        unsafe {
+        {
             let ts = S::Vf32::set1(t);
             let wf = S::Vf32::set1(w as f32);
             let hf = S::Vf32::set1(h as f32);
             let vec_len = (w * h * 4) as usize;
-            let mut result = Vec::<u8>::with_capacity(vec_len);
-            result.set_len(vec_len);
+            let mut result = vec![0u8; vec_len];
 
             let h_sm = StackMachine::<S>::build(&self.h);
             let s_sm = StackMachine::<S>::build(&self.s);
@@ -60,8 +59,7 @@ impl PicData for HSVData {
             .unwrap();
 
             let process = |(y_pixel, chunk): (usize, &mut [u8])| {
-                let mut stack = Vec::with_capacity(max_len);
-                stack.set_len(max_len);
+                let mut stack = vec![S::Vf32::zeroes(); max_len];
                 let y = S::Vf32::set1((y_pixel as f32 / h as f32) * 2.0 - 1.0);
                 let x_step = 2.0 / (w - 1) as f32;
                 let mut x = S::Vf32::zeroes();
@@ -98,9 +96,9 @@ impl PicData for HSVData {
 
                     let (mut rs, mut gs, mut bs) =
                         hsv_to_rgb::<S>(wrap_0_1::<S>(hs), wrap_0_1::<S>(ss), wrap_0_1::<S>(vs));
-                    rs = rs * S::Vf32::set1(255.0);
-                    gs = gs * S::Vf32::set1(255.0);
-                    bs = bs * S::Vf32::set1(255.0);
+                    rs *= S::Vf32::set1(255.0);
+                    gs *= S::Vf32::set1(255.0);
+                    bs *= S::Vf32::set1(255.0);
                     for j in 0..S::Vf32::WIDTH {
                         let j4: usize = j * 4;
                         let ij4 = i as usize + j4;
@@ -113,9 +111,9 @@ impl PicData for HSVData {
                         chunk[ij4] = r;
                         chunk[ij4 + 1] = g;
                         chunk[ij4 + 2] = b;
-                        chunk[ij4 + 3] = 255 as u8;
+                        chunk[ij4 + 3] = 255_u8;
                     }
-                    x = x + x_step;
+                    x += x_step;
                 }
             };
             if threaded {
@@ -173,7 +171,7 @@ impl PicData for HSVData {
 
 #[inline(always)]
 fn wrap_0_1<S: Simd>(v: S::Vf32) -> S::Vf32 {
-    unsafe {
+    {
         let mut r = S::Vf32::zeroes();
         for i in 0..S::Vf32::WIDTH {
             r[i] = v[i] % 1.0001;
@@ -183,7 +181,7 @@ fn wrap_0_1<S: Simd>(v: S::Vf32) -> S::Vf32 {
 }
 
 fn hsv_to_rgb<S: Simd>(h: S::Vf32, s: S::Vf32, v: S::Vf32) -> (S::Vf32, S::Vf32, S::Vf32) {
-    unsafe {
+    {
         let six = S::Vf32::set1(6.0);
         let one = S::Vf32::set1(1.0);
         let hi = (h * six).fast_floor().cast_i32();

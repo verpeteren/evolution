@@ -48,7 +48,7 @@ pub fn get_picture_path(args: &Args) -> PathBuf {
 pub fn load_pictures(pic_path: &Path) -> Result<HashMap<String, ActualPicture>, String> {
     let mut pictures = HashMap::new();
     //todo rayon par_iter
-    for file in read_dir(pic_path).expect(&format!("Cannot read path {:?}", pic_path)) {
+    for file in read_dir(pic_path).unwrap_or_else(|_| panic!("Cannot read path {:?}", pic_path)) {
         let short_file_name = file
             .as_ref()
             .unwrap()
@@ -57,7 +57,7 @@ pub fn load_pictures(pic_path: &Path) -> Result<HashMap<String, ActualPicture>, 
             .expect("Cannot convert file's name ");
         let path = file.as_ref().unwrap().path();
         let full_file_name = path.to_string_lossy();
-        if let Ok(pic) = ActualPicture::new_via_file(&full_file_name.to_owned()) {
+        if let Ok(pic) = ActualPicture::new_via_file(full_file_name.as_ref()) {
             pictures.insert(short_file_name, pic);
         }
     }
@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_filename_to_copy_to() {
         assert_eq!(
-            filename_to_copy_to(&Path::new("./somedir"), 1100, "somefile.png"),
+            filename_to_copy_to(Path::new("./somedir"), 1100, "somefile.png"),
             Path::new("./somedir/1100_somefile.png").to_path_buf()
         );
     }
