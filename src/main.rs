@@ -20,7 +20,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use evolution::ui::{fsm::FSM, state::State};
 use evolution::{
     filename_to_copy_to, get_picture_path, keep_aspect_ratio, lisp_to_pic, load_pictures,
-    pic_get_rgba8_runtime_select, pic_get_video_runtime_select, pic_simplify_runtime_select,
+    pic_get_rgba8, pic_get_video, pic_simplify,
     ActualPicture, Args, Pic, DEFAULT_FILE_OUT, DEFAULT_FPS, DEFAULT_VIDEO_DURATION, EXEC_NAME,
 };
 #[cfg(feature = "ui")]
@@ -141,7 +141,7 @@ fn main_cli(args: &Args) -> Result<(PathBuf, PathBuf), String> {
             .map_err(|e| format!("Cannot read input filename. {}", e))?;
     }
     let mut pic = lisp_to_pic(contents, args.coordinate_system.clone()).unwrap();
-    pic_simplify_runtime_select(&mut pic, pictures.clone(), width, height, t);
+    pic_simplify(&mut pic, pictures.clone(), width, height, t);
     let out_file = Path::new(out_filename);
     let (format, mut is_video) = select_image_format(out_file);
     if is_video {
@@ -154,7 +154,7 @@ fn main_cli(args: &Args) -> Result<(PathBuf, PathBuf), String> {
         assert_eq!(format, ImageFormat::Gif);
         let duration = if t == 0.0 { DEFAULT_VIDEO_DURATION } else { t };
         let raw_frames =
-            pic_get_video_runtime_select(&pic, pictures, width, height, DEFAULT_FPS, duration);
+            pic_get_video(&pic, pictures, width, height, DEFAULT_FPS, duration);
         if raw_frames.len() == 0 {
             println!("warning: not enough frames to make a usefull gif");
         } else {
@@ -169,7 +169,7 @@ fn main_cli(args: &Args) -> Result<(PathBuf, PathBuf), String> {
             }
         }
     } else {
-        let rgba8 = pic_get_rgba8_runtime_select(&pic, false, pictures, width, height, t);
+        let rgba8 = pic_get_rgba8(&pic, false, pictures, width, height, t);
         save_buffer_with_format(
             out_file,
             &rgba8[0..],

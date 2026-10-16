@@ -1,6 +1,6 @@
 use crate::ui::state::State;
 use crate::{
-    keep_aspect_ratio, pic_get_rgba8_runtime_select, Pic, EXEC_NAME, EXEC_UI_THUMB_COLS,
+    keep_aspect_ratio, pic_get_rgba8, Pic, EXEC_NAME, EXEC_UI_THUMB_COLS,
     EXEC_UI_THUMB_HEIGHT, EXEC_UI_THUMB_ROWS, EXEC_UI_THUMB_WIDTH,
 };
 
@@ -45,7 +45,7 @@ fn _fsm_select_prep<'a, 'b>(state: &'a mut State, _window: &'b Window, pic: Opti
     //todo: rayon par_iter
     for (r, row) in state.buttons.iter().enumerate() {
         for (c, button) in row.iter().enumerate() {
-            let generated_buffer = pic_get_rgba8_runtime_select(
+            let generated_buffer = pic_get_rgba8(
                 &button.pic,
                 false,
                 state.pictures.clone(),
@@ -123,7 +123,7 @@ fn _fsm_zoom_prep<'a, 'b>(state: &'a mut State, window: &'b Window, wpic: Option
         };
     }
     let (width, height) = state.dimensions;
-    let generated_buffer = pic_get_rgba8_runtime_select(
+    let generated_buffer = pic_get_rgba8(
         pic,
         false,
         state.pictures.clone(),

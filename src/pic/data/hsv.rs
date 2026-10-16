@@ -11,7 +11,7 @@ use crate::pic::pic::Pic;
 use crate::vm::stackmachine::StackMachine;
 
 use rayon::prelude::*;
-use simdeez::Simd;
+use simdeez::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct HSVData {
@@ -40,9 +40,9 @@ impl PicData for HSVData {
         t: f32,
     ) -> Vec<u8> {
         unsafe {
-            let ts = S::set1_ps(t);
-            let wf = S::set1_ps(w as f32);
-            let hf = S::set1_ps(h as f32);
+            let ts = S::Vf32::set1(t);
+            let wf = S::Vf32::set1(w as f32);
+            let hf = S::Vf32::set1(h as f32);
             let vec_len = (w * h * 4) as usize;
             let mut result = Vec::<u8>::with_capacity(vec_len);
             result.set_len(vec_len);
@@ -62,46 +62,46 @@ impl PicData for HSVData {
             let process = |(y_pixel, chunk): (usize, &mut [u8])| {
                 let mut stack = Vec::with_capacity(max_len);
                 stack.set_len(max_len);
-                let y = S::set1_ps((y_pixel as f32 / h as f32) * 2.0 - 1.0);
+                let y = S::Vf32::set1((y_pixel as f32 / h as f32) * 2.0 - 1.0);
                 let x_step = 2.0 / (w - 1) as f32;
-                let mut x = S::setzero_ps();
-                for i in (0..S::VF32_WIDTH).rev() {
+                let mut x = S::Vf32::zeroes();
+                for i in (0..S::Vf32::WIDTH).rev() {
                     x[i] = -1.0 + (x_step * i as f32);
                 }
-                let x_step = S::set1_ps(x_step * S::VF32_WIDTH as f32);
+                let x_step = S::Vf32::set1(x_step * S::Vf32::WIDTH as f32);
                 let chunk_len = chunk.len();
-                for i in (0..w * 4).step_by(S::VF32_WIDTH * 4) {
+                for i in (0..w * 4).step_by(S::Vf32::WIDTH * 4) {
                     let (hs, ss, vs) = if self.coord == CoordinateSystem::Cartesian {
                         let hs = (h_sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
-                            + S::set1_ps(1.0))
-                            * S::set1_ps(0.5);
+                            + S::Vf32::set1(1.0))
+                            * S::Vf32::set1(0.5);
                         let ss = (s_sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
-                            + S::set1_ps(1.0))
-                            * S::set1_ps(0.5);
+                            + S::Vf32::set1(1.0))
+                            * S::Vf32::set1(0.5);
                         let vs = (v_sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
-                            + S::set1_ps(1.0))
-                            * S::set1_ps(0.5);
+                            + S::Vf32::set1(1.0))
+                            * S::Vf32::set1(0.5);
                         (hs, ss, vs)
                     } else {
                         let (x, y) = cartesian_to_polar::<S>(x, y);
                         let hs = (h_sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
-                            + S::set1_ps(1.0))
-                            * S::set1_ps(0.5);
+                            + S::Vf32::set1(1.0))
+                            * S::Vf32::set1(0.5);
                         let ss = (s_sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
-                            + S::set1_ps(1.0))
-                            * S::set1_ps(0.5);
+                            + S::Vf32::set1(1.0))
+                            * S::Vf32::set1(0.5);
                         let vs = (v_sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
-                            + S::set1_ps(1.0))
-                            * S::set1_ps(0.5);
+                            + S::Vf32::set1(1.0))
+                            * S::Vf32::set1(0.5);
                         (hs, ss, vs)
                     };
 
                     let (mut rs, mut gs, mut bs) =
                         hsv_to_rgb::<S>(wrap_0_1::<S>(hs), wrap_0_1::<S>(ss), wrap_0_1::<S>(vs));
-                    rs = rs * S::set1_ps(255.0);
-                    gs = gs * S::set1_ps(255.0);
-                    bs = bs * S::set1_ps(255.0);
-                    for j in 0..S::VF32_WIDTH {
+                    rs = rs * S::Vf32::set1(255.0);
+                    gs = gs * S::Vf32::set1(255.0);
+                    bs = bs * S::Vf32::set1(255.0);
+                    for j in 0..S::Vf32::WIDTH {
                         let j4: usize = j * 4;
                         let ij4 = i as usize + j4;
                         if ij4 >= chunk_len {
@@ -174,8 +174,8 @@ impl PicData for HSVData {
 #[inline(always)]
 fn wrap_0_1<S: Simd>(v: S::Vf32) -> S::Vf32 {
     unsafe {
-        let mut r = S::setzero_ps();
-        for i in 0..S::VF32_WIDTH {
+        let mut r = S::Vf32::zeroes();
+        for i in 0..S::Vf32::WIDTH {
             r[i] = v[i] % 1.0001;
         }
         r
@@ -184,19 +184,19 @@ fn wrap_0_1<S: Simd>(v: S::Vf32) -> S::Vf32 {
 
 fn hsv_to_rgb<S: Simd>(h: S::Vf32, s: S::Vf32, v: S::Vf32) -> (S::Vf32, S::Vf32, S::Vf32) {
     unsafe {
-        let six = S::set1_ps(6.0);
-        let one = S::set1_ps(1.0);
-        let hi = S::cvtps_epi32(S::fast_floor_ps(h * six));
-        let f = h * six - S::cvtepi32_ps(hi);
+        let six = S::Vf32::set1(6.0);
+        let one = S::Vf32::set1(1.0);
+        let hi = (h * six).fast_floor().cast_i32();
+        let f = h * six - hi.cast_f32();
         let p = v * (one - s);
         let q = v * (one - f * s);
         let t = v * (one - (one - f) * s);
 
-        let mut r = S::setzero_ps();
-        let mut g = S::setzero_ps();
-        let mut b = S::setzero_ps();
+        let mut r = S::Vf32::zeroes();
+        let mut g = S::Vf32::zeroes();
+        let mut b = S::Vf32::zeroes();
 
-        for i in 0..S::VF32_WIDTH {
+        for i in 0..S::Vf32::WIDTH {
             match hi[i] % 6 {
                 0 => {
                     r[i] = v[i];

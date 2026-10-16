@@ -3,7 +3,8 @@ use std::ops::Not;
 use std::str::FromStr;
 
 use clap::ValueEnum;
-use simdeez::Simd;
+use simdeez::math::SimdMathF32InverseTrig;
+use simdeez::prelude::*;
 use variant_count::VariantCount;
 
 #[derive(Clone, Debug, PartialEq, ValueEnum, VariantCount)]
@@ -54,17 +55,17 @@ impl Not for CoordinateSystem {
 #[inline(always)]
 pub fn cartesian_to_polar<S: Simd>(x: S::Vf32, y: S::Vf32) -> (S::Vf32, S::Vf32) {
     unsafe {
-        let zero = S::set1_ps(0.0);
-        let pi = S::set1_ps(std::f32::consts::PI);
-        let pix2 = S::set1_ps(std::f32::consts::PI * 2.0);
+        let zero = S::Vf32::set1(0.0);
+        let pi = S::Vf32::set1(std::f32::consts::PI);
+        let pix2 = S::Vf32::set1(std::f32::consts::PI * 2.0);
 
-        let mask = S::cmpge_ps(x, zero);
-        let adjust = S::blendv_ps(pi, zero, mask);
-        let mask = S::cmplt_ps(y, zero) & mask;
-        let adjust = S::blendv_ps(adjust, pix2, mask);
+        let mask = x.cmp_gte(zero);
+        let adjust = mask.blendv(pi, zero);
+        let mask = y.cmp_lt(zero) & mask;
+        let adjust = mask.blendv(adjust, pix2);
 
-        let r = S::sqrt_ps(x * x + y * y);
-        let theta = S::fast_atan_ps(y / x) + adjust;
+        let r = (x * x + y * y).sqrt();
+        let theta = (y / x).atan_u35() + adjust;
         (r, theta)
     }
 }

@@ -14,11 +14,7 @@ use crate::pic::data::PicData;
 
 use rand::prelude::*;
 use rand::rngs::StdRng;
-use simdeez::avx2::*;
-use simdeez::scalar::*;
-use simdeez::sse2::*;
-use simdeez::sse41::*;
-use simdeez::Simd;
+use simdeez::prelude::*;
 
 simd_runtime_generate!(
     pub fn pic_get_rgba8(
@@ -614,7 +610,7 @@ mod tests {
             c: APTNode::X,
             coord: CoordinateSystem::Polar,
         });
-        let _x = pic_get_rgba8_runtime_select(
+        let _x = pic_get_rgba8(
             &pic,
             true,
             pictures,
@@ -632,7 +628,7 @@ mod tests {
             c: APTNode::X,
             coord: CoordinateSystem::Polar,
         });
-        let _x = pic_get_rgba8_runtime_select(
+        let _x = pic_get_rgba8(
             &pic,
             true,
             pictures,
@@ -670,7 +666,7 @@ mod tests {
             index: APTNode::X,
             coord: CoordinateSystem::Polar,
         });
-        let _x = pic_get_rgba8_runtime_select(
+        let _x = pic_get_rgba8(
             &pic,
             true,
             pictures,
@@ -690,7 +686,7 @@ mod tests {
             v: APTNode::T,
             coord: CoordinateSystem::Polar,
         });
-        let _x = pic_get_rgba8_runtime_select(
+        let _x = pic_get_rgba8(
             &pic,
             true,
             pictures,
@@ -710,7 +706,7 @@ mod tests {
             b: APTNode::T,
             coord: CoordinateSystem::Polar,
         });
-        let _x = pic_get_rgba8_runtime_select(
+        let _x = pic_get_rgba8(
             &pic,
             true,
             pictures,
@@ -727,7 +723,7 @@ mod tests {
     ) -> (DynamicImage, DynamicImage) {
         let pictures = Arc::new(HashMap::new());
         let pic = lisp_to_pic(source, DEFAULT_COORDINATE_SYSTEM).unwrap();
-        let gen_rgba8 = pic_get_rgba8_runtime_select(
+        let gen_rgba8 = pic_get_rgba8(
             &pic,
             true,
             pictures,

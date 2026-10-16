@@ -20,7 +20,7 @@ required-features = ["ui"]
 
 [dependencies]
 rand = "0.8.5"
-simdeez = { features = ["sleef"], path = "../simdeez" }
+simdeez = "3.0.1"
 simdnoise = { path = "../rust-simd-noise" }
 variant_count = "1.1.0"
 rayon = "1.6.1"

@@ -16,7 +16,7 @@ pub use hsv::HSVData;
 pub use mono::MonoData;
 pub use rgb::RGBData;
 
-use simdeez::Simd;
+use simdeez::prelude::*;
 
 pub trait PicData {
     fn new(min: usize, max: usize, video: bool, rng: &mut StdRng, pic_names: &Vec<&String>) -> Pic;

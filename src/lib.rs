@@ -31,7 +31,7 @@ pub use parser::lexer::lisp_to_pic;
 pub use pic::actual_picture::ActualPicture;
 pub use pic::coordinatesystem::CoordinateSystem;
 pub use pic::pic::{
-    pic_get_rgba8_runtime_select, pic_get_video_runtime_select, pic_simplify_runtime_select, Pic,
+    pic_get_rgba8, pic_get_video, pic_simplify, Pic,
 };
 
 #[cfg(feature = "ui")]

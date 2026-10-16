@@ -14,8 +14,8 @@ use image::{save_buffer_with_format, ColorType, ImageFormat, RgbaImage};
 use crate::filename_to_copy_to;
 use crate::ui::button::Button;
 use crate::{
-    get_picture_path, keep_aspect_ratio, load_pictures, pic_get_rgba8_runtime_select,
-    pic_simplify_runtime_select, ActualPicture, Args, Pic, EXEC_UI_THUMB_COLS,
+    get_picture_path, keep_aspect_ratio, load_pictures, pic_get_rgba8,
+    pic_simplify, ActualPicture, Args, Pic, EXEC_UI_THUMB_COLS,
     EXEC_UI_THUMB_HEIGHT, EXEC_UI_THUMB_ROWS, EXEC_UI_THUMB_WIDTH,
 };
 
@@ -66,7 +66,7 @@ impl State {
                     height: theight,
                 };
                 let mut pic = Pic::new(&mut self.rng, &pic_names);
-                pic_simplify_runtime_select(
+                pic_simplify(
                     &mut pic,
                     self.pictures.clone(),
                     twidth,
@@ -121,7 +121,7 @@ impl State {
         );
         let (width, height) = self.dimensions;
         let rgba8 =
-            pic_get_rgba8_runtime_select(&pic, false, self.pictures.clone(), width, height, ts);
+            pic_get_rgba8(&pic, false, self.pictures.clone(), width, height, ts);
         save_buffer_with_format(
             dest,
             &rgba8[..],

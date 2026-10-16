@@ -5,12 +5,13 @@ use crate::parser::aptnode::APTNode;
 use crate::pic::actual_picture::ActualPicture;
 use crate::vm::instruction::Instruction;
 
-use simdeez::Simd;
-use simdnoise::{
-    cellular::cellular_2d,
-    simplex::{fbm_2d, ridge_2d, turbulence_2d},
-    CellDistanceFunction, CellReturnType,
-};
+use simdeez::math::{SimdMathF32BinaryMisc, SimdMathF32Core, SimdMathF32InverseTrig};
+use simdeez::prelude::*;
+use simdnoise::noise::cell_32::cellular_2d;
+use simdnoise::noise::fbm_32::fbm_2d;
+use simdnoise::noise::ridge_32::ridge_2d;
+use simdnoise::noise::turbulence_32::turbulence_2d;
+use simdnoise::{CellDistanceFunction, CellReturnType};
 
 pub struct StackMachine<S: Simd> {
     pub instructions: Vec<Instruction<S>>,
@@ -45,7 +46,7 @@ impl<S: Simd> StackMachine<S> {
             APTNode::Min(_) => Instruction::Min,
             APTNode::Mandelbrot(_) => Instruction::Mandelbrot,
             APTNode::Picture(name, _) => Instruction::Picture(name.to_string()),
-            APTNode::Constant(v) => Instruction::Constant(unsafe { S::set1_ps(*v) }),
+            APTNode::Constant(v) => Instruction::Constant(unsafe { S::Vf32::set1(*v) }),
             APTNode::Width => Instruction::Width,
             APTNode::Height => Instruction::Height,
             APTNode::PI => Instruction::PI,
@@ -81,7 +82,7 @@ impl<S: Simd> StackMachine<S> {
 
     #[inline(always)]
     pub fn deal_with_nan(mut a: S::Vf32) -> S::Vf32 {
-        for i in 0..S::VF32_WIDTH {
+        for i in 0..S::Vf32::WIDTH {
             if a[i] == std::f32::INFINITY {
                 a[i] = 1.0;
             } else if a[i] == std::f32::NEG_INFINITY {
@@ -127,18 +128,18 @@ impl<S: Simd> StackMachine<S> {
                         sp -= 1;
                         let a = stack[sp - 1];
                         let b = stack[sp];
-                        let mut r = S::setzero_ps();
-                        for i in 0..S::VF32_WIDTH {
+                        let mut r = S::Vf32::zeroes();
+                        for i in 0..S::Vf32::WIDTH {
                             r[i] = a[i] % b[i];
                         }
                         stack[sp - 1] = StackMachine::<S>::deal_with_nan(r);
                     }
                     Instruction::FBM => {
                         sp -= 5;
-                        let xfreq = stack[sp - 1] * S::set1_ps(15.0);
-                        let yfreq = stack[sp + 4] * S::set1_ps(15.0);
-                        let lacunarity = stack[sp + 2] * S::set1_ps(5.0);
-                        let gain = stack[sp + 3] * S::set1_ps(0.5);
+                        let xfreq = stack[sp - 1] * S::Vf32::set1(15.0);
+                        let yfreq = stack[sp + 4] * S::Vf32::set1(15.0);
+                        let lacunarity = stack[sp + 2] * S::Vf32::set1(5.0);
+                        let gain = stack[sp + 3] * S::Vf32::set1(0.5);
                         let octaves = 3;
                         stack[sp - 1] = fbm_2d::<S>(
                             stack[sp + 1] * xfreq,
@@ -151,10 +152,10 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Ridge => {
                         sp -= 5;
-                        let xfreq = stack[sp - 1] * S::set1_ps(15.0);
-                        let yfreq = stack[sp + 4] * S::set1_ps(15.0);
-                        let lacunarity = stack[sp + 2] * S::set1_ps(5.0);
-                        let gain = stack[sp + 3] * S::set1_ps(0.5);
+                        let xfreq = stack[sp - 1] * S::Vf32::set1(15.0);
+                        let yfreq = stack[sp + 4] * S::Vf32::set1(15.0);
+                        let lacunarity = stack[sp + 2] * S::Vf32::set1(5.0);
+                        let gain = stack[sp + 3] * S::Vf32::set1(0.5);
                         let octaves = 3;
                         stack[sp - 1] = ridge_2d::<S>(
                             stack[sp + 1] * xfreq,
@@ -167,10 +168,10 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Turbulence => {
                         sp -= 5;
-                        let xfreq = stack[sp - 1] * S::set1_ps(15.0);
-                        let yfreq = stack[sp + 4] * S::set1_ps(15.0);
-                        let lacunarity = stack[sp + 2] * S::set1_ps(5.0);
-                        let gain = stack[sp + 3] * S::set1_ps(0.5);
+                        let xfreq = stack[sp - 1] * S::Vf32::set1(15.0);
+                        let yfreq = stack[sp + 4] * S::Vf32::set1(15.0);
+                        let lacunarity = stack[sp + 2] * S::Vf32::set1(5.0);
+                        let gain = stack[sp + 3] * S::Vf32::set1(0.5);
                         let octaves = 3;
                         stack[sp - 1] = turbulence_2d::<S>(
                             stack[sp + 1] * xfreq,
@@ -183,9 +184,9 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Cell1 => {
                         sp -= 4;
-                        let xfreq = stack[sp - 1] * S::set1_ps(4.0);
-                        let yfreq = stack[sp + 3] * S::set1_ps(4.0);
-                        let jitter = stack[sp + 2] * S::set1_ps(0.5);
+                        let xfreq = stack[sp - 1] * S::Vf32::set1(4.0);
+                        let yfreq = stack[sp + 3] * S::Vf32::set1(4.0);
+                        let jitter = stack[sp + 2] * S::Vf32::set1(0.5);
                         stack[sp - 1] = cellular_2d::<S>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
@@ -197,9 +198,9 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Cell2 => {
                         sp -= 4;
-                        let xfreq = stack[sp - 1] * S::set1_ps(4.0);
-                        let yfreq = stack[sp + 3] * S::set1_ps(4.0);
-                        let jitter = stack[sp + 2] * S::set1_ps(0.5);
+                        let xfreq = stack[sp - 1] * S::Vf32::set1(4.0);
+                        let yfreq = stack[sp + 3] * S::Vf32::set1(4.0);
+                        let jitter = stack[sp + 2] * S::Vf32::set1(0.5);
                         stack[sp - 1] = cellular_2d::<S>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
@@ -211,50 +212,51 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Sqrt => {
                         let v = stack[sp - 1];
-                        let positive = S::sqrt_ps(v);
-                        let negative = S::mul_ps(S::set1_ps(-1.0), S::sqrt_ps(S::abs_ps(v)));
-                        let mask = S::cmpge_ps(v, S::setzero_ps());
-                        stack[sp - 1] = S::blendv_ps(negative, positive, mask);
+                        let positive = v.sqrt();
+                        let negative = S::Vf32::set1(-1.0) * v.abs().sqrt();
+                        let mask = v.cmp_gte(S::Vf32::zeroes());
+                        stack[sp - 1] = mask.blendv(negative, positive);
                     }
                     Instruction::Sin => {
                         stack[sp - 1] =
-                            S::fast_sin_ps(stack[sp - 1] * S::set1_ps(std::f32::consts::PI));
+                            (stack[sp - 1] * S::Vf32::set1(std::f32::consts::PI)).sin_u35();
                     }
                     Instruction::Atan => {
-                        stack[sp - 1] = S::fast_atan_ps(stack[sp - 1] * S::set1_ps(4.0))
-                            * S::set1_ps(0.666666666);
+                        stack[sp - 1] = (stack[sp - 1] * S::Vf32::set1(4.0)).atan_u35()
+                            * S::Vf32::set1(0.666666666);
                     }
                     Instruction::Atan2 => {
                         sp -= 1;
                         let x = stack[sp - 1];
-                        let y = stack[sp] * S::set1_ps(4.0);
+                        let y = stack[sp] * S::Vf32::set1(4.0);
                         stack[sp - 1] =
-                            S::fast_atan2_ps(y, x) * S::set1_ps(std::f32::consts::FRAC_1_PI);
+                            y.atan2_u35(x) * S::Vf32::set1(std::f32::consts::FRAC_1_PI);
                     }
                     Instruction::Tan => {
-                        stack[sp - 1] =
-                            S::fast_tan_ps(stack[sp - 1] * S::set1_ps(std::f32::consts::FRAC_PI_2));
+                        stack[sp - 1] = (stack[sp - 1]
+                            * S::Vf32::set1(std::f32::consts::FRAC_PI_2))
+                        .tan_u35();
                     }
                     Instruction::Log => {
-                        let v = stack[sp - 1] * S::set1_ps(4.0);
-                        let positive = S::fast_ln_ps(v);
-                        let negative = S::mul_ps(S::set1_ps(-1.0), S::fast_ln_ps(S::abs_ps(v)));
-                        let mask = S::cmpge_ps(v, S::setzero_ps());
-                        stack[sp - 1] = S::blendv_ps(negative, positive, mask)
-                            * S::set1_ps(1.0 / std::f32::consts::E);
+                        let v = stack[sp - 1] * S::Vf32::set1(4.0);
+                        let positive = v.ln_u35();
+                        let negative = S::Vf32::set1(-1.0) * v.abs().ln_u35();
+                        let mask = v.cmp_gte(S::Vf32::zeroes());
+                        stack[sp - 1] = mask.blendv(negative, positive)
+                            * S::Vf32::set1(1.0 / std::f32::consts::E);
                     }
                     Instruction::Abs => {
-                        stack[sp - 1] = S::abs_ps(stack[sp - 1]);
+                        stack[sp - 1] = stack[sp - 1].abs();
                     }
                     Instruction::Floor => {
-                        stack[sp - 1] = S::fast_floor_ps(stack[sp - 1]);
+                        stack[sp - 1] = stack[sp - 1].fast_floor();
                     }
                     Instruction::Ceil => {
-                        stack[sp - 1] = S::fast_ceil_ps(stack[sp - 1]);
+                        stack[sp - 1] = stack[sp - 1].fast_ceil();
                     }
                     Instruction::Clamp => {
                         let mut v = stack[sp - 1];
-                        for i in 0..S::VF32_WIDTH {
+                        for i in 0..S::Vf32::WIDTH {
                             if v[i] > 1.0 {
                                 v[i] = 1.0
                             } else if v[i] < -1.0 {
@@ -265,7 +267,7 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Wrap => {
                         let mut v = stack[sp - 1];
-                        for i in 0..S::VF32_WIDTH {
+                        for i in 0..S::Vf32::WIDTH {
                             if v[i] < -1.0 || v[i] > 1.0 {
                                 let t = (v[i] + 1.0) / 2.0;
                                 v[i] = -1.0 + 2.0 * (t - t.floor());
@@ -279,11 +281,11 @@ impl<S: Simd> StackMachine<S> {
                     }
                     Instruction::Max => {
                         sp -= 1;
-                        stack[sp - 1] = S::max_ps(stack[sp - 1], stack[sp]);
+                        stack[sp - 1] = stack[sp - 1].max(stack[sp]);
                     }
                     Instruction::Min => {
                         sp -= 1;
-                        stack[sp - 1] = S::min_ps(stack[sp - 1], stack[sp]);
+                        stack[sp - 1] = stack[sp - 1].min(stack[sp]);
                     }
                     Instruction::Mandelbrot => {
                         sp -= 1;
@@ -296,23 +298,23 @@ impl<S: Simd> StackMachine<S> {
                         let x = stack[sp];
 
                         let picture = &pics[name];
-                        let w = S::set1_epi32(picture.w as i32);
-                        let h = S::set1_epi32(picture.h as i32);
-                        let wf = S::cvtepi32_ps(w);
-                        let hf = S::cvtepi32_ps(h);
-                        let mut xpct = (x + S::set1_ps(1.0)) / S::set1_ps(2.0);
-                        let mut ypct = (y + S::set1_ps(1.0)) / S::set1_ps(2.0);
-                        for i in 0..S::VF32_WIDTH {
+                        let w = S::Vi32::set1(picture.w as i32);
+                        let h = S::Vi32::set1(picture.h as i32);
+                        let wf = w.cast_f32();
+                        let hf = h.cast_f32();
+                        let mut xpct = (x + S::Vf32::set1(1.0)) / S::Vf32::set1(2.0);
+                        let mut ypct = (y + S::Vf32::set1(1.0)) / S::Vf32::set1(2.0);
+                        for i in 0..S::Vf32::WIDTH {
                             xpct[i] = xpct[i] % 1.0;
                             ypct[i] = ypct[i] % 1.0;
                         }
-                        let xi = S::cvtps_epi32(xpct * wf);
-                        let yi = S::cvtps_epi32(ypct * hf);
+                        let xi = (xpct * wf).cast_i32();
+                        let yi = (ypct * hf).cast_i32();
                         let index = xi + w * yi;
 
                         // println!("w:{:?} h{:?} xpct:{:?} ypct:{:?} index:{},{}",w[0],h[0],xpct[0],ypct[0],index[0],index[1]);
                         let brightness_len = picture.brightness.len();
-                        for i in 0..S::VF32_WIDTH {
+                        for i in 0..S::Vf32::WIDTH {
                             let slot: usize =
                                 index[i] as usize % (picture.w as usize * picture.h as usize);
                             if slot >= brightness_len {
@@ -334,12 +336,12 @@ impl<S: Simd> StackMachine<S> {
                         sp += 1;
                     }
                     Instruction::PI => {
-                        let v = S::set1_ps(std::f32::consts::PI);
+                        let v = S::Vf32::set1(std::f32::consts::PI);
                         stack[sp] = v;
                         sp += 1;
                     }
                     Instruction::E => {
-                        let v = S::set1_ps(std::f32::consts::E);
+                        let v = S::Vf32::set1(std::f32::consts::E);
                         stack[sp] = v;
                         sp += 1;
                     }
@@ -367,10 +369,6 @@ mod tests {
     use crate::parser::aptnode::mock;
 
     use super::*;
-    use simdeez::avx2::*;
-    use simdeez::scalar::*;
-    use simdeez::sse2::*;
-    use simdeez::sse41::*;
 
     simd_runtime_generate!(
         fn impl_stackmachine_get_instruction() {
@@ -602,7 +600,7 @@ mod tests {
 
     #[test]
     fn test_stackmachine_get_instruction() {
-        impl_stackmachine_get_instruction_runtime_select();
+        impl_stackmachine_get_instruction();
     }
 
     simd_runtime_generate!(
@@ -623,18 +621,18 @@ mod tests {
 
     #[test]
     fn test_stackmachine_build() {
-        impl_stackmachine_build_runtime_select();
+        impl_stackmachine_build();
     }
 
     simd_runtime_generate!(
         fn impl_stackmachine_deal_with_nan() {
             unsafe {
-                let zeros = S::set1_ps(0.0);
-                let ones = S::set1_ps(1.0);
-                let neg_ones = S::set1_ps(-1.0);
-                let neg_infs = S::set1_ps(std::f32::NEG_INFINITY);
-                let infs = S::set1_ps(std::f32::INFINITY);
-                let nans = S::set1_ps(std::f32::NAN);
+                let zeros = S::Vf32::set1(0.0);
+                let ones = S::Vf32::set1(1.0);
+                let neg_ones = S::Vf32::set1(-1.0);
+                let neg_infs = S::Vf32::set1(std::f32::NEG_INFINITY);
+                let infs = S::Vf32::set1(std::f32::INFINITY);
+                let nans = S::Vf32::set1(std::f32::NAN);
 
                 assert_eq!(StackMachine::<S>::deal_with_nan(ones)[0], ones[0]);
                 assert_eq!(StackMachine::<S>::deal_with_nan(zeros)[0], zeros[0]);
@@ -647,6 +645,6 @@ mod tests {
 
     #[test]
     fn test_stackmachine_deal_with_nan() {
-        impl_stackmachine_deal_with_nan_runtime_select();
+        impl_stackmachine_deal_with_nan();
     }
 }

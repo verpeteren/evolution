@@ -15,7 +15,7 @@ use crate::pic::pic::Pic;
 use crate::vm::stackmachine::StackMachine;
 
 use rayon::prelude::*;
-use simdeez::Simd;
+use simdeez::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GradientData {
@@ -57,9 +57,9 @@ impl PicData for GradientData {
         t: f32,
     ) -> Vec<u8> {
         unsafe {
-            let ts = S::set1_ps(t);
-            let wf = S::set1_ps(w as f32);
-            let hf = S::set1_ps(h as f32);
+            let ts = S::Vf32::set1(t);
+            let wf = S::Vf32::set1(w as f32);
+            let hf = S::Vf32::set1(h as f32);
             let vec_len = (w * h * 4) as usize;
             let mut result = Vec::<u8>::with_capacity(vec_len);
             result.set_len(vec_len);
@@ -106,25 +106,25 @@ impl PicData for GradientData {
                 let mut stack = Vec::with_capacity(sm.instructions.len());
                 stack.set_len(sm.instructions.len());
 
-                let y = S::set1_ps((y_pixel as f32 / h as f32) * 2.0 - 1.0);
+                let y = S::Vf32::set1((y_pixel as f32 / h as f32) * 2.0 - 1.0);
                 let x_step = 2.0 / (w - 1) as f32;
-                let mut x = S::setzero_ps();
-                for i in (0..S::VF32_WIDTH).rev() {
+                let mut x = S::Vf32::zeroes();
+                for i in (0..S::Vf32::WIDTH).rev() {
                     x[i] = -1.0 + (x_step * i as f32);
                 }
-                let x_step = S::set1_ps(x_step * S::VF32_WIDTH as f32);
+                let x_step = S::Vf32::set1(x_step * S::Vf32::WIDTH as f32);
                 let chunk_len = chunk.len();
-                for i in (0..w * 4).step_by(S::VF32_WIDTH * 4) {
+                for i in (0..w * 4).step_by(S::Vf32::WIDTH * 4) {
                     let v = if self.coord == CoordinateSystem::Cartesian {
                         sm.execute(&mut stack, pics.clone(), x, y, ts, wf, hf)
                     } else {
                         let (r, theta) = cartesian_to_polar::<S>(x, y);
                         sm.execute(&mut stack, pics.clone(), r, theta, ts, wf, hf)
                     };
-                    let scaled_v = (v + S::set1_ps(1.0)) * S::set1_ps(0.5);
-                    let index = S::cvtps_epi32(scaled_v * S::set1_ps(PIC_GRADIENT_SIZE as f32));
+                    let scaled_v = (v + S::Vf32::set1(1.0)) * S::Vf32::set1(0.5);
+                    let index = (scaled_v * S::Vf32::set1(PIC_GRADIENT_SIZE as f32)).cast_i32();
 
-                    for j in 0..S::VF32_WIDTH {
+                    for j in 0..S::Vf32::WIDTH {
                         let j4: usize = j * 4;
                         let ij4 = i as usize + j4;
                         if ij4 >= chunk_len {
