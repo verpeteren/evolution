@@ -1,0 +1,21 @@
+[package]
+name = "evolution-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.evolution]
+path = ".."
+
+[[bin]]
+name = "parse_lisp"
+path = "fuzz_targets/parse_lisp.rs"
+test = false
+doc = false
+bench = false
