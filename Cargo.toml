@@ -1,7 +1,10 @@
 [package]
 name = "evolution"
-version = "0.0.1"
-authors = ["Jack"]
+version = "0.0.2"
+authors = [
+    "Jack Mott <jack.mott@gmail.com>",
+    "Peter Reijnders <peter.reijnders@verpeteren.nl>",
+]
 edition = "2018"
 
 [features]
