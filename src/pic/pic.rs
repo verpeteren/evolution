@@ -261,7 +261,7 @@ mod tests {
     use crate::constants::{DEFAULT_COORDINATE_SYSTEM, DEFAULT_IMAGE_HEIGHT, DEFAULT_IMAGE_WIDTH};
     use crate::parser::lexer::lisp_to_pic;
     use crate::pic::color::Color;
-    use image::io::Reader as ImageReader;
+    use image::ImageReader;
     use image::{
         save_buffer_with_format, ColorType, DynamicImage, GenericImageView, ImageBuffer,
         ImageFormat,

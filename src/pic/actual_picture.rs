@@ -1,4 +1,4 @@
-use image::io::Reader as ImageReader;
+use image::ImageReader;
 use image::GenericImageView;
 
 #[readonly::make]
