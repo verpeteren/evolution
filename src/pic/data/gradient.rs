@@ -28,11 +28,11 @@ impl PicData for GradientData {
     fn new(min: usize, max: usize, video: bool, rng: &mut StdRng, pic_names: &Vec<&String>) -> Pic {
         //todo cleanup
         //color theory?
-        let num_colors = rng.gen_range(PIC_GRADIENT_COUNT_MIN..PIC_GRADIENT_COUNT_MAX);
+        let num_colors = rng.random_range(PIC_GRADIENT_COUNT_MIN..PIC_GRADIENT_COUNT_MAX);
         let mut colors = Vec::with_capacity(num_colors);
 
         for _ in 0..num_colors {
-            let stop = rng.gen_range(0..PIC_GRADIENT_STOP_CHANCE);
+            let stop = rng.random_range(0..PIC_GRADIENT_STOP_CHANCE);
             if stop == 0 {
                 colors.push((get_random_color(rng), true));
             } else {
@@ -41,7 +41,7 @@ impl PicData for GradientData {
         }
 
         let (tree, coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         Pic::Gradient(GradientData {
             colors: colors,
             index: tree,
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_pic_new_gradient() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let pic = GradientData::new(0, 60, false, &mut rng, &vec![&"eye.jpg".to_string()]);
         match &pic {
             Pic::Gradient(GradientData {

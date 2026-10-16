@@ -24,11 +24,11 @@ pub struct RGBData {
 impl PicData for RGBData {
     fn new(min: usize, max: usize, video: bool, rng: &mut StdRng, pic_names: &Vec<&String>) -> Pic {
         let (r, coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         let (g, _coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         let (b, _coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         Pic::RGB(RGBData { r, g, b, coord })
     }
     fn get_rgba8<S: Simd>(
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_pic_new_rgb() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let pic = RGBData::new(0, 60, false, &mut rng, &vec![&"eye.jpg".to_string()]);
         match &pic {
             Pic::RGB(RGBData { r, g, b, coord: _ }) => {

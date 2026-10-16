@@ -42,7 +42,7 @@ impl State {
             buttons: Vec::new(), //this will be overridden by generate_buttons() during _fsm_regenerate_
             pictures,
             dimensions,
-            rng: StdRng::from_rng(rand::thread_rng()).unwrap(),
+            rng: StdRng::from_rng(&mut rand::rng()),
             offset: args.time,
             start_time: SystemTime::now().duration_since(UNIX_EPOCH).unwrap(),
             image: RgbaImage::new(args.width, args.height),

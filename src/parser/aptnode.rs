@@ -247,7 +247,7 @@ impl APTNode {
         }
     }
     pub fn pick_random_coord(rng: &mut StdRng) -> CoordinateSystem {
-        let r = rng.gen_range(0..CoordinateSystem::VARIANT_COUNT);
+        let r = rng.random_range(0..CoordinateSystem::VARIANT_COUNT);
 
         match r {
             0 => CoordinateSystem::Polar,
@@ -259,7 +259,7 @@ impl APTNode {
     pub fn pick_random_node(rng: &mut StdRng, pic_names: &Vec<&String>) -> APTNode {
         let ignore_variant_count = 9;
         let ignore_pictures = if pic_names.len() == 0 { 1 } else { 0 };
-        let r = rng.gen_range(0..APTNode::VARIANT_COUNT - ignore_variant_count - ignore_pictures);
+        let r = rng.random_range(0..APTNode::VARIANT_COUNT - ignore_variant_count - ignore_pictures);
 
         match r {
             0 => APTNode::Add(vec![APTNode::Empty, APTNode::Empty]),
@@ -322,7 +322,7 @@ impl APTNode {
             24 => APTNode::Mandelbrot(vec![APTNode::Empty, APTNode::Empty]),
             // Pictures should be the last one (see _ignore_pictures variable)
             25 => {
-                let r = rng.gen_range(0..pic_names.len()) as usize;
+                let r = rng.random_range(0..pic_names.len()) as usize;
                 APTNode::Picture(
                     pic_names[r].to_string(),
                     vec![APTNode::Empty, APTNode::Empty],
@@ -333,22 +333,22 @@ impl APTNode {
     }
 
     pub fn pick_random_leaf(rng: &mut StdRng) -> APTNode {
-        let r = rng.gen_range(0..3);
+        let r = rng.random_range(0..3);
         match r {
             0 => APTNode::X,
             1 => APTNode::Y,
-            2 => APTNode::Constant(rng.gen_range(-1.0..1.0)),
+            2 => APTNode::Constant(rng.random_range(-1.0..1.0)),
             _ => panic!("pick_random_leaf generated unhandled r:{}", r),
         }
     }
 
     pub fn pick_random_leaf_video(rng: &mut StdRng) -> APTNode {
-        let r = rng.gen_range(0..4);
+        let r = rng.random_range(0..4);
         match r {
             0 => APTNode::X,
             1 => APTNode::Y,
             2 => APTNode::T,
-            3 => APTNode::Constant(rng.gen_range(-1.0..1.0)),
+            3 => APTNode::Constant(rng.random_range(-1.0..1.0)),
             _ => panic!("pick_random_leaf generated unhandled r:{}", r),
         }
     }
@@ -358,7 +358,7 @@ impl APTNode {
             Some(children) => children,
             None => panic!("tried to add_random to a leaf"),
         };
-        let add_index = rng.gen_range(0..children.len());
+        let add_index = rng.random_range(0..children.len());
         match children[add_index] {
             APTNode::Empty => children[add_index] = node,
             _ => children[add_index].add_random(node, rng),
@@ -2739,7 +2739,7 @@ mod tests {
 
     #[test]
     fn test_aptnode_pick_random_node() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let name = "eye.jpg".to_string();
 
         let pic_names = vec![&name];
@@ -2755,7 +2755,7 @@ mod tests {
 
     #[test]
     fn test_aptnode_pick_random_leaf() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
 
         for _i in 0..100 {
             match APTNode::pick_random_leaf(&mut rng) {
@@ -2772,7 +2772,7 @@ mod tests {
 
     #[test]
     fn test_aptnode_pick_random_leaf_video() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
 
         for _i in 0..100 {
             match APTNode::pick_random_leaf_video(&mut rng) {
@@ -2790,7 +2790,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "tried to add_random to a leaf")]
     fn test_aptnode_add_random_fail() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let mut this_node = APTNode::X;
         let that_node = APTNode::Y;
         this_node.add_random(that_node, &mut rng);
@@ -2799,7 +2799,7 @@ mod tests {
     #[test]
     #[ignore] // findout what is wrong here
     fn test_aptnode_add_random() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let mut this_node = APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)]);
         let that_node = APTNode::Add(vec![APTNode::Constant(1.0), APTNode::Constant(2.1)]);
         this_node.add_random(that_node.clone(), &mut rng);

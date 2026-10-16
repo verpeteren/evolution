@@ -22,7 +22,7 @@ pub struct MonoData {
 impl PicData for MonoData {
     fn new(min: usize, max: usize, video: bool, rng: &mut StdRng, pic_names: &Vec<&String>) -> Pic {
         let (tree, coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         Pic::Mono(MonoData { c: tree, coord })
     }
     fn get_rgba8<S: Simd>(
@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_pic_new_mono() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let pic = MonoData::new(0, 60, false, &mut rng, &vec![&"eye.jpg".to_string()]);
         match &pic {
             Pic::Mono(MonoData { c, coord: _coord }) => {

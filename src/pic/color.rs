@@ -56,9 +56,9 @@ pub fn lerp_color(a: Color, b: Color, pct: f32) -> Color {
 }
 
 pub fn get_random_color(rng: &mut StdRng) -> Color {
-    let r = rng.gen_range(0.0..1.0);
-    let g = rng.gen_range(0.0..1.0);
-    let b = rng.gen_range(0.0..1.0);
+    let r = rng.random_range(0.0..1.0);
+    let g = rng.random_range(0.0..1.0);
+    let b = rng.random_range(0.0..1.0);
     Color::new(r, g, b, 1.0)
 }
 
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_get_random_color() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let color = get_random_color(&mut rng);
         assert!(color.r >= 0.0 && color.r <= 1.0);
         assert!(color.g >= 0.0 && color.g <= 1.0);

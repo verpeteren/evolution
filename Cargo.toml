@@ -19,7 +19,7 @@ path = "src/main.rs"
 required-features = ["ui"]
 
 [dependencies]
-rand = "0.8.5"
+rand = "0.10.3"
 simdeez = "3.0.1"
 simdnoise = { path = "../rust-simd-noise" }
 variant_count = "1.1.0"

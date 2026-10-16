@@ -24,11 +24,11 @@ pub struct HSVData {
 impl PicData for HSVData {
     fn new(min: usize, max: usize, video: bool, rng: &mut StdRng, pic_names: &Vec<&String>) -> Pic {
         let (h, coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         let (s, _coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         let (v, _coord) =
-            APTNode::create_random_tree(rng.gen_range(min..max), video, rng, pic_names);
+            APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         Pic::HSV(HSVData { h, s, v, coord })
     }
     fn get_rgba8<S: Simd>(
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_pic_new_hsv() {
-        let mut rng = StdRng::from_rng(rand::thread_rng()).unwrap();
+        let mut rng = StdRng::from_rng(&mut rand::rng());
         let pic = HSVData::new(0, 60, false, &mut rng, &vec![&"eye.jpg".to_string()]);
         match &pic {
             Pic::HSV(HSVData { h, s, v, coord: _ }) => {
