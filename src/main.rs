@@ -61,8 +61,7 @@ fn main_gui(args: &Args) -> Result<(), String> {
     .unwrap_or_else(|e| {
         panic!("{}", e);
     });
-    let refresh_interval = 1_000_000 / DEFAULT_FPS as u64;
-    window.limit_update_rate(Some(std::time::Duration::from_micros(refresh_interval)));
+    window.set_target_fps(DEFAULT_FPS as usize);
     window.topmost(true);
 
     let mut fsm = FSM::default();
