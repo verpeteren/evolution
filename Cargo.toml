@@ -25,7 +25,7 @@ simdnoise = { path = "../rust-simd-noise" }
 variant_count = "1.2.1"
 rayon = "1.12.0"
 image = "0.25.10"
-notify = "5.0.0"
+notify = "8.2.0"
 readonly = "0.2.3"
 clap = { version = "4.0.32", features = ["derive"] }
 minifb = { version = "0.23.0", optional = true }
