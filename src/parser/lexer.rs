@@ -48,11 +48,13 @@ impl<'a> Lexer<'a> {
             self.width = 0;
             None
         } else {
-            self.width = 1; // Assuming one always for now
             let c = self.input[self.pos..]
                 .chars()
                 .next()
                 .expect("unexpected end of input");
+            // Advance by the UTF-8 byte length so `pos` always lands on a char
+            // boundary; otherwise slicing `self.input[self.pos..]` panics.
+            self.width = c.len_utf8();
             if Lexer::is_linebreak(c) {
                 self.current_line += 1;
             }
@@ -62,7 +64,9 @@ impl<'a> Lexer<'a> {
     }
 
     fn backup(&mut self) {
-        self.pos -= 1;
+        // Undo the last `next` by its real byte width (0 if `next` hit EOF, so
+        // this never underflows).
+        self.pos -= self.width;
     }
 
     fn ignore(&mut self) {
@@ -154,19 +158,13 @@ impl<'a> Lexer<'a> {
 }
 
 pub fn lisp_to_pic(code: String, coord: CoordinateSystem) -> Result<Pic, String> {
-    let mut pic_opt = None;
-    rayon::scope(|s| {
-        let (sender, receiver) = channel();
-        s.spawn(|_| {
-            Lexer::begin_lexing(&code, sender);
-        });
-
-        // TODO: fix race condition that crashes at parser.rs:68. Workaround:
-        std::thread::sleep(std::time::Duration::from_millis(1));
-
-        pic_opt = Some(parse_pic(&receiver, coord))
-    });
-    pic_opt.unwrap()
+    // Lex fully into an unbounded channel, then parse. Running the lexer to
+    // completion first (rather than concurrently with the parser) avoids the
+    // race where the parser drops the receiver on an early error while the
+    // lexer is still emitting, which panicked in `Lexer::emit`.
+    let (sender, receiver) = channel();
+    Lexer::begin_lexing(&code, sender);
+    parse_pic(&receiver, coord)
 }
 
 pub fn expect_open_paren(receiver: &Receiver<Token>) -> Result<(), String> {
@@ -275,7 +273,9 @@ pub fn parse_pic(
                         .collect(),
                     receiver,
                 ) {
-                    coord = coord_system.parse().unwrap();
+                    if let Ok(parsed) = coord_system.parse() {
+                        coord = parsed;
+                    }
                 };
                 Ok(Pic::Mono(MonoData {
                     c: APTNode::parse_apt_node(receiver)?,
@@ -290,7 +290,9 @@ pub fn parse_pic(
                         .collect(),
                     receiver,
                 ) {
-                    coord = coord_system.parse().unwrap();
+                    if let Ok(parsed) = coord_system.parse() {
+                        coord = parsed;
+                    }
                 };
                 Ok(Pic::Grayscale(GrayscaleData {
                     c: APTNode::parse_apt_node(receiver)?,
@@ -305,7 +307,9 @@ pub fn parse_pic(
                         .collect(),
                     receiver,
                 ) {
-                    coord = coord_system.parse().unwrap();
+                    if let Ok(parsed) = coord_system.parse() {
+                        coord = parsed;
+                    }
                 };
                 Ok(Pic::RGB(RGBData {
                     r: APTNode::parse_apt_node(receiver)?,
@@ -322,7 +326,9 @@ pub fn parse_pic(
                         .collect(),
                     receiver,
                 ) {
-                    coord = coord_system.parse().unwrap();
+                    if let Ok(parsed) = coord_system.parse() {
+                        coord = parsed;
+                    }
                 };
                 Ok(Pic::HSV(HSVData {
                     h: APTNode::parse_apt_node(receiver)?,
@@ -339,7 +345,9 @@ pub fn parse_pic(
                         .collect(),
                     receiver,
                 ) {
-                    coord = coord_system.parse().unwrap();
+                    if let Ok(parsed) = coord_system.parse() {
+                        coord = parsed;
+                    }
                 };
                 let mut colors = Vec::new();
                 expect_open_paren(receiver)?;
@@ -351,7 +359,8 @@ pub fn parse_pic(
                             if e.starts_with("Unexpected token on line ") {
                                 break;
                             } else {
-                                panic!("{:?}", e);
+                                // e.g. unexpected end of file mid-gradient.
+                                return Err(e);
                             }
                         }
                         Ok(color_type) => {
