@@ -22,7 +22,7 @@ required-features = ["ui"]
 rand = "0.10.3"
 simdeez = "3.0.1"
 simdnoise = { path = "../rust-simd-noise" }
-variant_count = "1.1.0"
+variant_count = "1.2.1"
 rayon = "1.6.1"
 image = "0.24.5"
 notify = "5.0.0"
