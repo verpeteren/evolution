@@ -106,6 +106,16 @@ EXPR         = '(' EXPR ')';
              | '(' 'Turbulence' EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
              | '(' 'Cell1' EXPR EXPR EXPR EXPR EXPR ')' ;
              | '(' 'Cell2' EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'FBM3' EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'FBM4' EXPR EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Ridge3' EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Ridge4' EXPR EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Turbulence3' EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Turbulence4' EXPR EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Cell1_3' EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Cell1_4' EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Cell2_3' EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
+             | '(' 'Cell2_4' EXPR EXPR EXPR EXPR EXPR EXPR EXPR ')' ;
              | '(' 'Mandelbrot' EXPR EXPR ')' ;
              | '(' 'Sin' EXPR ')' ;
              | '(' 'Tan' EXPR ')' ;
@@ -211,6 +221,21 @@ The math operations (`+`, `-`, `*`, `/`, `%`, `sin`, `tan`, `atan`, `atan2`, `mi
 * p2: Todo
 * p3: Todo
 * p4: Todo
+
+##### Multi-dimensional noise (3D / 4D)
+
+Each noise family also has 3D and 4D variants that sample the noise field in
+three or four dimensions — e.g. feed `X Y T` to animate noise over time. The
+children are the coordinates, then a shared `freq` and `offset` that map each
+axis as `coord * freq + offset` (so the sampling domain is expression-driven),
+then the family-specific parameters:
+
+* `FBM3` / `Ridge3` / `Turbulence3`: `x0 x1 x2 freq offset lacunarity gain`
+* `FBM4` / `Ridge4` / `Turbulence4`: `x0 x1 x2 x3 freq offset lacunarity gain`
+* `Cell1_3` / `Cell2_3`: `x0 x1 x2 freq offset jitter`
+* `Cell1_4` / `Cell2_4`: `x0 x1 x2 x3 freq offset jitter`
+
+Example: `( Mono ( FBM3 X Y T 0.5 0.0 2.0 0.5 ) )`.
 
 ##### Mandlebrot
 
