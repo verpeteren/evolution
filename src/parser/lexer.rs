@@ -104,7 +104,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn lex_operation(l: &mut Lexer) -> Option<StateFunction> {
-        l.accept_run("+-/*%abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.");
+        l.accept_run("+-/*%abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._");
         l.emit(Token::Operation(&l.input[l.start..l.pos], l.current_line));
         Some(StateFunction(Lexer::determine_token))
     }

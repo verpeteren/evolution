@@ -13,6 +13,7 @@ use simdeez::prelude::*;
 use variant_count::VariantCount;
 
 #[derive(VariantCount, Clone, Debug, PartialEq)]
+#[allow(non_camel_case_types)] // Cell1_3 / Cell2_4 etc. encode noise-type + dimension
 pub enum APTNode {
     Add(Vec<APTNode>),
     Sub(Vec<APTNode>),
@@ -39,6 +40,16 @@ pub enum APTNode {
     Max(Vec<APTNode>),
     Min(Vec<APTNode>),
     Mandelbrot(Vec<APTNode>),
+    FBM3(Vec<APTNode>),
+    FBM4(Vec<APTNode>),
+    Ridge3(Vec<APTNode>),
+    Ridge4(Vec<APTNode>),
+    Turbulence3(Vec<APTNode>),
+    Turbulence4(Vec<APTNode>),
+    Cell1_3(Vec<APTNode>),
+    Cell1_4(Vec<APTNode>),
+    Cell2_3(Vec<APTNode>),
+    Cell2_4(Vec<APTNode>),
     Picture(String, Vec<APTNode>),
     Constant(f32),
     Width,
@@ -49,6 +60,18 @@ pub enum APTNode {
     Y,
     T,
     Empty,
+}
+
+/// Serialize an n-ary operation to lisp: `( OP c0 c1 ... )`.
+fn lisp_nary(op: &str, children: &[APTNode]) -> String {
+    let mut s = String::from("( ");
+    s.push_str(op);
+    for c in children {
+        s.push(' ');
+        s.push_str(&c.to_lisp());
+    }
+    s.push_str(" )");
+    s
 }
 
 impl APTNode {
@@ -143,6 +166,16 @@ impl APTNode {
                 children[0].to_lisp(),
                 children[1].to_lisp()
             ),
+            APTNode::FBM3(children) => lisp_nary("FBM3", children),
+            APTNode::FBM4(children) => lisp_nary("FBM4", children),
+            APTNode::Ridge3(children) => lisp_nary("RIDGE3", children),
+            APTNode::Ridge4(children) => lisp_nary("RIDGE4", children),
+            APTNode::Turbulence3(children) => lisp_nary("TURBULENCE3", children),
+            APTNode::Turbulence4(children) => lisp_nary("TURBULENCE4", children),
+            APTNode::Cell1_3(children) => lisp_nary("CELL1_3", children),
+            APTNode::Cell1_4(children) => lisp_nary("CELL1_4", children),
+            APTNode::Cell2_3(children) => lisp_nary("CELL2_3", children),
+            APTNode::Cell2_4(children) => lisp_nary("CELL2_4", children),
             APTNode::Picture(name, children) => format!(
                 "( PIC-{} {} {} )",
                 name,
@@ -215,6 +248,16 @@ impl APTNode {
                 APTNode::Empty,
                 APTNode::Empty,
             ])),
+            "fbm3" => Ok(APTNode::FBM3(vec![APTNode::Empty; 7])),
+            "fbm4" => Ok(APTNode::FBM4(vec![APTNode::Empty; 8])),
+            "ridge3" => Ok(APTNode::Ridge3(vec![APTNode::Empty; 7])),
+            "ridge4" => Ok(APTNode::Ridge4(vec![APTNode::Empty; 8])),
+            "turbulence3" => Ok(APTNode::Turbulence3(vec![APTNode::Empty; 7])),
+            "turbulence4" => Ok(APTNode::Turbulence4(vec![APTNode::Empty; 8])),
+            "cell1_3" => Ok(APTNode::Cell1_3(vec![APTNode::Empty; 6])),
+            "cell1_4" => Ok(APTNode::Cell1_4(vec![APTNode::Empty; 7])),
+            "cell2_3" => Ok(APTNode::Cell2_3(vec![APTNode::Empty; 6])),
+            "cell2_4" => Ok(APTNode::Cell2_4(vec![APTNode::Empty; 7])),
             "sqrt" => Ok(APTNode::Sqrt(vec![APTNode::Empty])),
             "sin" => Ok(APTNode::Sin(vec![APTNode::Empty])),
             "atan" => Ok(APTNode::Atan(vec![APTNode::Empty])),
@@ -321,8 +364,18 @@ impl APTNode {
             22 => APTNode::Max(vec![APTNode::Empty, APTNode::Empty]),
             23 => APTNode::Min(vec![APTNode::Empty, APTNode::Empty]),
             24 => APTNode::Mandelbrot(vec![APTNode::Empty, APTNode::Empty]),
+            25 => APTNode::FBM3(vec![APTNode::Empty; 7]),
+            26 => APTNode::FBM4(vec![APTNode::Empty; 8]),
+            27 => APTNode::Ridge3(vec![APTNode::Empty; 7]),
+            28 => APTNode::Ridge4(vec![APTNode::Empty; 8]),
+            29 => APTNode::Turbulence3(vec![APTNode::Empty; 7]),
+            30 => APTNode::Turbulence4(vec![APTNode::Empty; 8]),
+            31 => APTNode::Cell1_3(vec![APTNode::Empty; 6]),
+            32 => APTNode::Cell1_4(vec![APTNode::Empty; 7]),
+            33 => APTNode::Cell2_3(vec![APTNode::Empty; 6]),
+            34 => APTNode::Cell2_4(vec![APTNode::Empty; 7]),
             // Pictures should be the last one (see _ignore_pictures variable)
-            25 => {
+            35 => {
                 let r = rng.random_range(0..pic_names.len());
                 APTNode::Picture(
                     pic_names[r].to_string(),
@@ -458,6 +511,16 @@ impl APTNode {
             | APTNode::Max(children)
             | APTNode::Min(children)
             | APTNode::Mandelbrot(children)
+            | APTNode::FBM3(children)
+            | APTNode::FBM4(children)
+            | APTNode::Ridge3(children)
+            | APTNode::Ridge4(children)
+            | APTNode::Turbulence3(children)
+            | APTNode::Turbulence4(children)
+            | APTNode::Cell1_3(children)
+            | APTNode::Cell1_4(children)
+            | APTNode::Cell2_3(children)
+            | APTNode::Cell2_4(children)
             | APTNode::Picture(_, children) => {
                 let mut sx = S::Vf32::set1(0.0);
                 let mut sy = S::Vf32::set1(0.0);
@@ -529,6 +592,16 @@ impl APTNode {
             APTNode::Max(_) => APTNode::Max(children),
             APTNode::Min(_) => APTNode::Min(children),
             APTNode::Mandelbrot(_) => APTNode::Mandelbrot(children),
+            APTNode::FBM3(_) => APTNode::FBM3(children),
+            APTNode::FBM4(_) => APTNode::FBM4(children),
+            APTNode::Ridge3(_) => APTNode::Ridge3(children),
+            APTNode::Ridge4(_) => APTNode::Ridge4(children),
+            APTNode::Turbulence3(_) => APTNode::Turbulence3(children),
+            APTNode::Turbulence4(_) => APTNode::Turbulence4(children),
+            APTNode::Cell1_3(_) => APTNode::Cell1_3(children),
+            APTNode::Cell1_4(_) => APTNode::Cell1_4(children),
+            APTNode::Cell2_3(_) => APTNode::Cell2_3(children),
+            APTNode::Cell2_4(_) => APTNode::Cell2_4(children),
             APTNode::Picture(name, _) => APTNode::Picture(name.to_string(), children[1..].to_vec()),
             APTNode::Constant(v) => APTNode::Constant(*v),
             APTNode::Width => APTNode::Width,
@@ -637,7 +710,17 @@ impl APTNode {
             | APTNode::Square(children)
             | APTNode::Max(children)
             | APTNode::Min(children)
-            | APTNode::Mandelbrot(children) => Some(children),
+            | APTNode::Mandelbrot(children)
+            | APTNode::FBM3(children)
+            | APTNode::FBM4(children)
+            | APTNode::Ridge3(children)
+            | APTNode::Ridge4(children)
+            | APTNode::Turbulence3(children)
+            | APTNode::Turbulence4(children)
+            | APTNode::Cell1_3(children)
+            | APTNode::Cell1_4(children)
+            | APTNode::Cell2_3(children)
+            | APTNode::Cell2_4(children) => Some(children),
             APTNode::Picture(_, children) => Some(children),
             _ => None,
         }
@@ -669,7 +752,17 @@ impl APTNode {
             | APTNode::Square(children)
             | APTNode::Max(children)
             | APTNode::Min(children)
-            | APTNode::Mandelbrot(children) => Some(children),
+            | APTNode::Mandelbrot(children)
+            | APTNode::FBM3(children)
+            | APTNode::FBM4(children)
+            | APTNode::Ridge3(children)
+            | APTNode::Ridge4(children)
+            | APTNode::Turbulence3(children)
+            | APTNode::Turbulence4(children)
+            | APTNode::Cell1_3(children)
+            | APTNode::Cell1_4(children)
+            | APTNode::Cell2_3(children)
+            | APTNode::Cell2_4(children) => Some(children),
             APTNode::Picture(_, children) => Some(children),
             _ => None,
         }

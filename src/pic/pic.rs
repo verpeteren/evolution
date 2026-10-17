@@ -771,6 +771,33 @@ mod tests {
     }
 
     #[test]
+    fn test_render_3d_4d_noise_nodes() {
+        // Each new multi-dimensional noise node must parse and render without an
+        // out-of-bounds panic in the execute stack arithmetic. Children are
+        // coords..., freq, offset, then lac+gain (fbm/ridge/turbulence) or
+        // jitter (cell).
+        let pics: Arc<HashMap<String, ActualPicture>> = Arc::new(HashMap::new());
+        let sources = [
+            "( Mono ( FBM3 X Y T 0.5 0.0 2.0 0.5 ) )",
+            "( Mono ( FBM4 X Y T X 0.5 0.0 2.0 0.5 ) )",
+            "( Mono ( RIDGE3 X Y T 0.5 0.0 2.0 0.5 ) )",
+            "( Mono ( RIDGE4 X Y T X 0.5 0.0 2.0 0.5 ) )",
+            "( Mono ( TURBULENCE3 X Y T 0.5 0.0 2.0 0.5 ) )",
+            "( Mono ( TURBULENCE4 X Y T X 0.5 0.0 2.0 0.5 ) )",
+            "( Mono ( CELL1_3 X Y T 0.5 0.0 0.5 ) )",
+            "( Mono ( CELL1_4 X Y T X 0.5 0.0 0.5 ) )",
+            "( Mono ( CELL2_3 X Y T 0.5 0.0 0.5 ) )",
+            "( Mono ( CELL2_4 X Y T X 0.5 0.0 0.5 ) )",
+        ];
+        for src in sources {
+            let pic = lisp_to_pic(src.to_string(), CoordinateSystem::Cartesian)
+                .unwrap_or_else(|e| panic!("parse failed for `{}`: {}", src, e));
+            let out = pic_get_rgba8(&pic, false, pics.clone(), 8, 8, 0.0);
+            assert_eq!(out.len(), 8 * 8 * 4, "wrong buffer size for `{}`", src);
+        }
+    }
+
+    #[test]
     fn test_parse_and_render_mono() {
         let img_file = "./samples/mono.png";
         let source = r#"

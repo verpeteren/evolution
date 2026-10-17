@@ -3,7 +3,8 @@ use simdeez::prelude::*;
 use std::fmt;
 
 #[derive(PartialEq)]
-#[allow(clippy::upper_case_acronyms)] // FBM is the DSL keyword, kept verbatim
+// FBM is the DSL keyword, kept verbatim; Cell1_3 etc. encode noise-type + dimension
+#[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 pub enum Instruction<S: Simd> {
     Add,
     Sub,
@@ -30,6 +31,16 @@ pub enum Instruction<S: Simd> {
     Max,
     Min,
     Mandelbrot,
+    FBM3,
+    FBM4,
+    Ridge3,
+    Ridge4,
+    Turbulence3,
+    Turbulence4,
+    Cell1_3,
+    Cell1_4,
+    Cell2_3,
+    Cell2_4,
     Picture(String),
     Constant(S::Vf32),
     Width,
@@ -72,6 +83,16 @@ where
             Instruction::Max => "Max".to_string(),
             Instruction::Min => "Min".to_string(),
             Instruction::Mandelbrot => "Mandelbrot".to_string(),
+            Instruction::FBM3 => "FBM3".to_string(),
+            Instruction::FBM4 => "FBM4".to_string(),
+            Instruction::Ridge3 => "Ridge3".to_string(),
+            Instruction::Ridge4 => "Ridge4".to_string(),
+            Instruction::Turbulence3 => "Turbulence3".to_string(),
+            Instruction::Turbulence4 => "Turbulence4".to_string(),
+            Instruction::Cell1_3 => "Cell1_3".to_string(),
+            Instruction::Cell1_4 => "Cell1_4".to_string(),
+            Instruction::Cell2_3 => "Cell2_3".to_string(),
+            Instruction::Cell2_4 => "Cell2_4".to_string(),
             Instruction::Picture(pic_name) => format!("Picture({})", pic_name),
             Instruction::Constant(vf32) => format!("Constant({:?}", vf32),
             Instruction::Width => "Width".to_string(),
