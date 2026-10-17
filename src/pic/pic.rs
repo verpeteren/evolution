@@ -193,10 +193,12 @@ impl Pic {
         // todo investigate if we can return an iterator instead of a vec
         let frames = (fps as f32 * (d_ms / 1000.0)) as i32;
         let frame_dt = 2.0 / frames as f32;
+        let frame_len = (w * h * 4) as usize;
         let mut t = -1.0;
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(frames.max(0) as usize);
         for _i in 0..frames {
-            let frame_buffer = self.get_rgba8::<S>(true, pics.clone(), w, h, t);
+            let mut frame_buffer = vec![0u8; frame_len];
+            self.render_into::<S>(&mut frame_buffer, true, pics.clone(), w, h, t);
             result.push(frame_buffer);
             t += frame_dt;
         }
@@ -213,6 +215,26 @@ impl Pic {
         }
     }
 
+    /// Render into a caller-provided RGBA8 buffer (`w * h * 4` bytes). Lets a
+    /// caller reuse one allocation across many renders (e.g. a video encoder).
+    pub fn render_into<S: Simd>(
+        &self,
+        buf: &mut [u8],
+        threaded: bool,
+        pics: Arc<HashMap<String, ActualPicture>>,
+        w: u32,
+        h: u32,
+        t: f32,
+    ) {
+        match self {
+            Pic::Mono(data) => data.render_into::<S>(buf, threaded, pics, w, h, t),
+            Pic::Grayscale(data) => data.render_into::<S>(buf, threaded, pics, w, h, t),
+            Pic::Gradient(data) => data.render_into::<S>(buf, threaded, pics, w, h, t),
+            Pic::RGB(data) => data.render_into::<S>(buf, threaded, pics, w, h, t),
+            Pic::HSV(data) => data.render_into::<S>(buf, threaded, pics, w, h, t),
+        }
+    }
+
     pub fn get_rgba8<S: Simd>(
         &self,
         threaded: bool,
@@ -221,13 +243,9 @@ impl Pic {
         h: u32,
         t: f32,
     ) -> Vec<u8> {
-        match self {
-            Pic::Mono(data) => data.get_rgba8::<S>(threaded, pics, w, h, t),
-            Pic::Grayscale(data) => data.get_rgba8::<S>(threaded, pics, w, h, t),
-            Pic::Gradient(data) => data.get_rgba8::<S>(threaded, pics, w, h, t),
-            Pic::RGB(data) => data.get_rgba8::<S>(threaded, pics, w, h, t),
-            Pic::HSV(data) => data.get_rgba8::<S>(threaded, pics, w, h, t),
-        }
+        let mut buf = vec![0u8; (w * h * 4) as usize];
+        self.render_into::<S>(&mut buf, threaded, pics, w, h, t);
+        buf
     }
 
     pub fn can_animate(&self) -> bool {

@@ -25,20 +25,20 @@ impl PicData for MonoData {
             APTNode::create_random_tree(rng.random_range(min..max), video, rng, pic_names);
         Pic::Mono(MonoData { c: tree, coord })
     }
-    fn get_rgba8<S: Simd>(
+    fn render_into<S: Simd>(
         &self,
+        buf: &mut [u8],
         threaded: bool,
         pics: Arc<HashMap<String, ActualPicture>>,
         w: u32,
         h: u32,
         t: f32,
-    ) -> Vec<u8> {
+    ) {
         {
+            debug_assert_eq!(buf.len(), (w * h * 4) as usize);
             let ts = S::Vf32::set1(t);
             let wf = S::Vf32::set1(w as f32);
             let hf = S::Vf32::set1(h as f32);
-            let vec_len = (w * h * 4) as usize;
-            let mut result = vec![0u8; vec_len];
             let sm = StackMachine::<S>::build(&self.c);
             /*
             let mut min = 999999.0;
@@ -81,18 +81,15 @@ impl PicData for MonoData {
             };
 
             if threaded {
-                result
-                    .par_chunks_mut(4 * w as usize)
+                buf.par_chunks_mut(4 * w as usize)
                     .enumerate()
                     .for_each(process);
             } else {
-                result
-                    .chunks_exact_mut(4 * w as usize)
+                buf.chunks_exact_mut(4 * w as usize)
                     .enumerate()
                     .for_each(process);
             }
             // println!("min:{} max:{} range:{}",min,max,max-min);
-            result
         }
     }
     fn simplify<S: Simd>(
