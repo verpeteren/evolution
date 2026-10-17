@@ -9,6 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
+rand = "0.10.3"
 
 [dependencies.evolution]
 path = ".."
@@ -16,6 +17,20 @@ path = ".."
 [[bin]]
 name = "parse_lisp"
 path = "fuzz_targets/parse_lisp.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "render_small"
+path = "fuzz_targets/render_small.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "roundtrip"
+path = "fuzz_targets/roundtrip.rs"
 test = false
 doc = false
 bench = false

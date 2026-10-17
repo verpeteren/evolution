@@ -7,11 +7,11 @@ use crate::vm::instruction::Instruction;
 
 use simdeez::math::{SimdMathF32BinaryMisc, SimdMathF32Core, SimdMathF32InverseTrig};
 use simdeez::prelude::*;
-use simdnoise::noise::cell_32::cellular_2d;
-use simdnoise::noise::fbm_32::fbm_2d;
-use simdnoise::noise::ridge_32::ridge_2d;
-use simdnoise::noise::turbulence_32::turbulence_2d;
-use simdnoise::{CellDistanceFunction, CellReturnType};
+use simdnoise::noise::cell_32::{cellular_2d, cellular_3d, cellular_4d};
+use simdnoise::noise::cell_strategy::{CellValue, Distance, Euclidean};
+use simdnoise::noise::fbm_32::{fbm_2d, fbm_3d, fbm_4d};
+use simdnoise::noise::ridge_32::{ridge_2d, ridge_3d, ridge_4d};
+use simdnoise::noise::turbulence_32::{turbulence_2d, turbulence_3d, turbulence_4d};
 
 pub struct StackMachine<S: Simd> {
     pub instructions: Vec<Instruction<S>>,
@@ -45,6 +45,16 @@ impl<S: Simd> StackMachine<S> {
             APTNode::Max(_) => Instruction::Max,
             APTNode::Min(_) => Instruction::Min,
             APTNode::Mandelbrot(_) => Instruction::Mandelbrot,
+            APTNode::FBM3(_) => Instruction::FBM3,
+            APTNode::FBM4(_) => Instruction::FBM4,
+            APTNode::Ridge3(_) => Instruction::Ridge3,
+            APTNode::Ridge4(_) => Instruction::Ridge4,
+            APTNode::Turbulence3(_) => Instruction::Turbulence3,
+            APTNode::Turbulence4(_) => Instruction::Turbulence4,
+            APTNode::Cell1_3(_) => Instruction::Cell1_3,
+            APTNode::Cell1_4(_) => Instruction::Cell1_4,
+            APTNode::Cell2_3(_) => Instruction::Cell2_3,
+            APTNode::Cell2_4(_) => Instruction::Cell2_4,
             APTNode::Picture(name, _) => Instruction::Picture(name.to_string()),
             APTNode::Constant(v) => Instruction::Constant(S::Vf32::set1(*v)),
             APTNode::Width => Instruction::Width,
@@ -138,7 +148,7 @@ impl<S: Simd> StackMachine<S> {
                         let yfreq = stack[sp + 4] * S::Vf32::set1(15.0);
                         let lacunarity = stack[sp + 2] * S::Vf32::set1(5.0);
                         let gain = stack[sp + 3] * S::Vf32::set1(0.5);
-                        let octaves = 3;
+                        let octaves = 3.0;
                         stack[sp - 1] = fbm_2d::<S>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
@@ -154,7 +164,7 @@ impl<S: Simd> StackMachine<S> {
                         let yfreq = stack[sp + 4] * S::Vf32::set1(15.0);
                         let lacunarity = stack[sp + 2] * S::Vf32::set1(5.0);
                         let gain = stack[sp + 3] * S::Vf32::set1(0.5);
-                        let octaves = 3;
+                        let octaves = 3.0;
                         stack[sp - 1] = ridge_2d::<S>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
@@ -170,7 +180,7 @@ impl<S: Simd> StackMachine<S> {
                         let yfreq = stack[sp + 4] * S::Vf32::set1(15.0);
                         let lacunarity = stack[sp + 2] * S::Vf32::set1(5.0);
                         let gain = stack[sp + 3] * S::Vf32::set1(0.5);
-                        let octaves = 3;
+                        let octaves = 3.0;
                         stack[sp - 1] = turbulence_2d::<S>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
@@ -185,11 +195,9 @@ impl<S: Simd> StackMachine<S> {
                         let xfreq = stack[sp - 1] * S::Vf32::set1(4.0);
                         let yfreq = stack[sp + 3] * S::Vf32::set1(4.0);
                         let jitter = stack[sp + 2] * S::Vf32::set1(0.5);
-                        stack[sp - 1] = cellular_2d::<S>(
+                        stack[sp - 1] = cellular_2d::<S, Euclidean, Distance>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
-                            CellDistanceFunction::Euclidean,
-                            CellReturnType::Distance,
                             jitter,
                             1,
                         );
@@ -199,11 +207,165 @@ impl<S: Simd> StackMachine<S> {
                         let xfreq = stack[sp - 1] * S::Vf32::set1(4.0);
                         let yfreq = stack[sp + 3] * S::Vf32::set1(4.0);
                         let jitter = stack[sp + 2] * S::Vf32::set1(0.5);
-                        stack[sp - 1] = cellular_2d::<S>(
+                        stack[sp - 1] = cellular_2d::<S, Euclidean, CellValue>(
                             stack[sp + 1] * xfreq,
                             stack[sp] * yfreq,
-                            CellDistanceFunction::Euclidean,
-                            CellReturnType::CellValue,
+                            jitter,
+                            1,
+                        );
+                    }
+                    // --- 3D/4D noise: children are (coords..., freq, offset, lac, gain)
+                    // for fbm/ridge/turbulence and (coords..., freq, offset, jitter)
+                    // for cell. Each axis input = coord * freq + offset.
+                    Instruction::FBM3 => {
+                        sp -= 6;
+                        let gain = stack[sp - 1];
+                        let lac = stack[sp];
+                        let offset = stack[sp + 1];
+                        let freq = stack[sp + 2];
+                        stack[sp - 1] = fbm_3d::<S>(
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            lac,
+                            gain,
+                            3.0,
+                            3,
+                        );
+                    }
+                    Instruction::FBM4 => {
+                        sp -= 7;
+                        let gain = stack[sp - 1];
+                        let lac = stack[sp];
+                        let offset = stack[sp + 1];
+                        let freq = stack[sp + 2];
+                        stack[sp - 1] = fbm_4d::<S>(
+                            stack[sp + 6] * freq + offset,
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            lac,
+                            gain,
+                            3.0,
+                            3,
+                        );
+                    }
+                    Instruction::Ridge3 => {
+                        sp -= 6;
+                        let gain = stack[sp - 1];
+                        let lac = stack[sp];
+                        let offset = stack[sp + 1];
+                        let freq = stack[sp + 2];
+                        stack[sp - 1] = ridge_3d::<S>(
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            lac,
+                            gain,
+                            3.0,
+                            3,
+                        );
+                    }
+                    Instruction::Ridge4 => {
+                        sp -= 7;
+                        let gain = stack[sp - 1];
+                        let lac = stack[sp];
+                        let offset = stack[sp + 1];
+                        let freq = stack[sp + 2];
+                        stack[sp - 1] = ridge_4d::<S>(
+                            stack[sp + 6] * freq + offset,
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            lac,
+                            gain,
+                            3.0,
+                            3,
+                        );
+                    }
+                    Instruction::Turbulence3 => {
+                        sp -= 6;
+                        let gain = stack[sp - 1];
+                        let lac = stack[sp];
+                        let offset = stack[sp + 1];
+                        let freq = stack[sp + 2];
+                        stack[sp - 1] = turbulence_3d::<S>(
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            lac,
+                            gain,
+                            3.0,
+                            3,
+                        );
+                    }
+                    Instruction::Turbulence4 => {
+                        sp -= 7;
+                        let gain = stack[sp - 1];
+                        let lac = stack[sp];
+                        let offset = stack[sp + 1];
+                        let freq = stack[sp + 2];
+                        stack[sp - 1] = turbulence_4d::<S>(
+                            stack[sp + 6] * freq + offset,
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            lac,
+                            gain,
+                            3.0,
+                            3,
+                        );
+                    }
+                    Instruction::Cell1_3 => {
+                        sp -= 5;
+                        let jitter = stack[sp - 1];
+                        let offset = stack[sp];
+                        let freq = stack[sp + 1];
+                        stack[sp - 1] = cellular_3d::<S, Euclidean, Distance>(
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            stack[sp + 2] * freq + offset,
+                            jitter,
+                            1,
+                        );
+                    }
+                    Instruction::Cell1_4 => {
+                        sp -= 6;
+                        let jitter = stack[sp - 1];
+                        let offset = stack[sp];
+                        let freq = stack[sp + 1];
+                        stack[sp - 1] = cellular_4d::<S, Euclidean, Distance>(
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            stack[sp + 2] * freq + offset,
+                            jitter,
+                            1,
+                        );
+                    }
+                    Instruction::Cell2_3 => {
+                        sp -= 5;
+                        let jitter = stack[sp - 1];
+                        let offset = stack[sp];
+                        let freq = stack[sp + 1];
+                        stack[sp - 1] = cellular_3d::<S, Euclidean, CellValue>(
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            stack[sp + 2] * freq + offset,
+                            jitter,
+                            1,
+                        );
+                    }
+                    Instruction::Cell2_4 => {
+                        sp -= 6;
+                        let jitter = stack[sp - 1];
+                        let offset = stack[sp];
+                        let freq = stack[sp + 1];
+                        stack[sp - 1] = cellular_4d::<S, Euclidean, CellValue>(
+                            stack[sp + 5] * freq + offset,
+                            stack[sp + 4] * freq + offset,
+                            stack[sp + 3] * freq + offset,
+                            stack[sp + 2] * freq + offset,
                             jitter,
                             1,
                         );
