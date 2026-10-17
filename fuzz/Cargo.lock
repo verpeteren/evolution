@@ -385,6 +385,7 @@ version = "0.0.0"
 dependencies = [
  "evolution",
  "libfuzzer-sys",
+ "rand 0.10.3",
 ]
 
 [[package]]
@@ -1165,7 +1166,7 @@ dependencies = [
 
 [[package]]
 name = "simdnoise"
-version = "3.1.7"
+version = "4.0.0"
 dependencies = [
  "simdeez",
 ]
