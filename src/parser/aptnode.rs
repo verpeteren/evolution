@@ -517,7 +517,7 @@ impl APTNode {
             APTNode::Sqrt(_) => APTNode::Sqrt(children),
             APTNode::Sin(_) => APTNode::Sin(children),
             APTNode::Atan(_) => APTNode::Atan(children),
-            APTNode::Atan2(_) => APTNode::Atan(children),
+            APTNode::Atan2(_) => APTNode::Atan2(children),
             APTNode::Tan(_) => APTNode::Tan(children),
             APTNode::Log(_) => APTNode::Log(children),
             APTNode::Abs(_) => APTNode::Abs(children),
