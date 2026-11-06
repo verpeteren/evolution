@@ -67,7 +67,7 @@ impl Pic {
     pub fn new(rng: &mut StdRng, pic_names: &Vec<&String>) -> Self {
         let pic_type = rng.random_range(0..5);
 
-        
+
         match pic_type {
             0 => MonoData::new(
                 PIC_RANDOM_TREE_MIN,
